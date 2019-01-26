@@ -85,6 +85,14 @@ function for_xy(x1,x2, y1,y2, func)
  end
 end
 
+function clone(input)
+  local t = {}
+  for key, value in pairs(input) do
+    t[key] = value
+  end
+  return t
+end
+
 
 --------------------------------
 ----------------------- setup --
@@ -333,6 +341,7 @@ end
 function draw_screen(map_number, distance_from_home)
   map_x, map_y = get_map_offset(map_number)
   sx, sy = get_screen_offset(distance_from_home)
+  rect(sx,sy, sx+128, sy+128)
   map(map_x,map_y, sx,sy, 16,16)
 end
 
@@ -340,9 +349,7 @@ function get_screen(sx)
   return flr(sx / 128)
 end
 
-local home_maps = {1}
-local available_maps = {2,3,4,5,6,7,8}
-function pick_map()
+function pick_map_old()
   local i = rnd_index(available_maps)
   log("map", i, #available_maps)
   return available_maps[rnd_index(available_maps)]
@@ -399,9 +406,13 @@ end
 --------------------------------
 ------------- mode: overworld --
 
-local home_map = 1
-local map_list_right = {pick_map(),pick_map(),pick_map(),pick_map(),pick_map(),pick_map()}
-local map_list_left = {pick_map(),pick_map(),pick_map(),pick_map(),pick_map()}
+
+home_maps = {1}
+available_maps = {2,3,4,5,6,7,8}
+
+home_map = 1
+map_list_right = {pick_map_old(),pick_map_old(),pick_map_old(),pick_map_old(),pick_map_old(),pick_map_old()}
+map_list_left = {pick_map_old(),pick_map_old(),pick_map_old(),pick_map_old(),pick_map_old()}
 
 function _update_overworld()
   t = (t + 1) % 32767
@@ -455,6 +466,43 @@ end
 function go_to_overworld()
   _update = _update_overworld
   _draw = _draw_overworld
+  init_overworld()
+end
+
+-- returns the map_id of an available map, probabilistically
+function pick_map()
+  local i = rnd_index(available_maps)
+  log("map", i, #available_maps)
+  return available_maps[rnd_index(available_maps)]
+end
+
+function init_overworld()
+  home_map = 1
+  map_list_left = {2,3}
+  map_list_right = {2,3}
+  overworld_entities = {}
+  init_map_data_all({home_map}, 0)
+  init_map_data_all(map_list_left, -1)
+  init_map_data_all(map_list_right, 1)
+end
+
+function init_map_data_all(map_ids, direction)
+  for i=1,#map_ids do
+    local map_id = map_ids[i]
+    local map_data = map_setup[map_id]
+    local distance_from_home = direction * map_id
+    init_map_data_one(map_setup[map_id], map_id, distance_from_home)
+  end
+end
+
+function init_map_data_one(map_data, map_id, distance_from_home)
+  local screen_offset_x, _ = get_screen_offset(distance_from_home)
+  log("init_map_data_one", map_id, distance_from_home, screen_offset_x, _)
+  for entity in all(map_data.default_entities) do
+    local new_entity = clone(entity)
+    new_entity.x = new_entity.x + screen_offset_x
+    add(overworld_entities, new_entity)
+  end
 end
 
 --------------------------------
@@ -504,13 +552,30 @@ go_to_hive()
 -- prep entities
 function _init()
   overworld_entities = {
-    {type="hive", x=64, y=52,reactions={go_to_hive}},
     {type="food", x=136,y=floor_y,reactions={er_carry}}
   }
 
   hive_entities = {
     {type="hive",      x=64, y=128-_s.hive.cy,reactions={go_to_overworld}},
     {type="honeycomb", x=96,y=96,reactions={er_consume_carry}}
+  }
+  
+  map_setup = {
+    [1] = {
+      default_entities = {
+        {type="hive", x=64, y=52,reactions={go_to_hive}},
+      },
+      update = function(offset_x) log"2222 update 2222" end
+    },
+    [2] = {
+      default_entities = {
+        {type="food", x=0,y=floor_y,reactions={er_carry}}
+      },
+      update = function() log"2222 update 2222" end
+    },
+    [3] = {
+
+    }
   }
 end
 
