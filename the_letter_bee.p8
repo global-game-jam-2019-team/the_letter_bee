@@ -23,7 +23,8 @@ local bee_jank_factor_x = .5
 local normal_gravity = 5
 
 -- the y position of the floor
-local floor_y = 128 - 8
+local floor_y = 128 - 32
+local hive_wall_thickness = 8
 
 -------------------------- util --
 
@@ -229,6 +230,13 @@ function apply_floors(entities)
   if p.y > floor_y then p.y = floor_y end
 end
 
+function apply_hive_walls(entities)
+  if p.y > 128-hive_wall_thickness then p.y = 128-hive_wall_thickness end
+  if p.x > 128-hive_wall_thickness then p.x = 128-hive_wall_thickness end
+  if p.y < hive_wall_thickness then p.y = hive_wall_thickness end
+  if p.x < hive_wall_thickness then p.x = hive_wall_thickness end
+end
+
 function control()
   -- left
   if b(0).isdown then
@@ -412,6 +420,7 @@ end
 
 function _draw_overworld()
   cls"12"
+  rectfill(cam_x,floor_y, 128+cam_x,128, 3)
   camera(cam_x,0)
   local screen = get_screen(cam_x)
 
@@ -457,7 +466,7 @@ function _update_hive()
   update_bee()
   control()
 
-  apply_floors(hive_entities)
+  apply_hive_walls(hive_entities)
   check_overlap(hive_entities)
   apply_overlap(hive_entities)
 
@@ -468,6 +477,7 @@ end
 
 function _draw_hive()
   cls"15"
+  camera(cam_x,0)
   -- map(0,64-16, 0,0, 16,16)
 
   -- entities
@@ -485,6 +495,7 @@ end
 function go_to_hive()
   _update = _update_hive
   _draw = _draw_hive
+  cam_x = 0
 end
 
 -- go_to_overworld()
@@ -493,7 +504,7 @@ go_to_hive()
 -- prep entities
 function _init()
   overworld_entities = {
-    {type="hive", x=64, y=76,reactions={go_to_hive}},
+    {type="hive", x=64, y=52,reactions={go_to_hive}},
     {type="food", x=136,y=floor_y,reactions={er_carry}}
   }
 
