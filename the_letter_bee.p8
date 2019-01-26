@@ -17,9 +17,9 @@ local p =              -- player
    carry_sprite="food_green"}
 local bee_gravity = 0
 local bee_speed = 3
-local bee_jank_skip_rate = 1
-local bee_jank_factor_y = 2
-local bee_jank_factor_x = .5
+local bee_jank_skip_rate = 3
+local bee_jank_factor_y = 3
+local bee_jank_factor_x = .75
 local normal_gravity = 5
 
 -- the y position of the floor
@@ -490,7 +490,7 @@ function init_map_data_all(map_ids, direction)
   for i=1,#map_ids do
     local map_id = map_ids[i]
     local map_data = map_setup[map_id]
-    local distance_from_home = direction * map_id
+    local distance_from_home = direction * i
     init_map_data_one(map_setup[map_id], map_id, distance_from_home)
   end
 end
