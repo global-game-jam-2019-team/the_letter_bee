@@ -12,7 +12,6 @@ local p =              -- player
  { x = 32, y = 32, move_timer = 0,
    cycling = false, cycle_timer = 0,
    col = 8, mode = 1}
-local sand_behaviors = {}
 local gravity = 5
 
 -------------------------- util --
@@ -25,6 +24,7 @@ function log(text,val1,val2,val3,val4)
   if val4 == nil then val4 = "nil" end
   printh("["..t.."] "..text.."|"..val1.."|"..val2.."|"..val3.."|"..val4, "b")
 end
+
 function len(x,y)
  return sqrt(len2(x,y))
 end
@@ -96,6 +96,34 @@ _b = {
  { count=0, isdown=false, used=false,
    sym="�", col=15 }  -- x
 }
+
+-- sprite data
+_s = {
+  bee        = {n=  1, w=1, h=1, cx=4, cy=4, r=4},
+  bee_green  = {n=  2, w=1, h=1, cx=4, cy=4, r=4},
+  bee_blue   = {n= 17, w=1, h=1, cx=4, cy=4, r=4},
+  bee_pink   = {n= 18, w=1, h=1, cx=4, cy=4, r=4},
+  food       = {n= 16, w=1, h=1, cx=4, cy=4, r=4},
+  food_green = {n= 32, w=1, h=1, cx=4, cy=4, r=4},
+  food_pink  = {n= 33, w=1, h=1, cx=4, cy=4, r=4},
+  food_blue  = {n= 34, w=1, h=1, cx=4, cy=4, r=4},
+
+  hive   =     {n=  3, w=2, h=2, cx=8, cy=8, r=8},
+  cloud  =     {n=  5, w=2, h=1, cx=8, cy=8},
+  cloud2 =     {n= 48, w=2, h=1, cx=8, cy=8},
+  floor  =     {n=  7, w=2, h=1, cx=4, cy=4},
+  speech =     {n=  8, w=2, h=2, cx=12,cy=16},
+  speech =     {n=  7, w=2, h=1, cx=12,cy=16},
+
+  honeycomb =  {n= 35, w=2, h=2, cx=8, cy=8, r=8},
+  -- TODO: Tree.
+}
+
+-- gathers spr parameters
+function s(name, x, y)
+  local sd = _s[name]
+  return sd.n, x-sd.cx, y-sd.cy, sd.w, sd.h
+end
 
 function b(i)
  return _b[i+1]
@@ -222,9 +250,12 @@ local map_list_right = {3,3,5,3,5,7,9}
 local map_list_left = {2,4,6,8}
 
 function _draw()
+  -- reset
   cls()
-  camera(cam_x,0)
+
+  -- orient
   local screen = get_screen(cam_x)
+  camera(cam_x,0)
 
   -- home
   draw_screen(home_map, 0)
@@ -240,6 +271,9 @@ function _draw()
     local map = map_list_right[i]
     draw_screen(map, i)
   end
+
+  -- bee
+  spr(s("bee", 64, 64))
 end
 
 -------------------------------
