@@ -13,7 +13,8 @@ local t = 0      -- current time
 local p =              -- player
  { x = 64, y = 64, move_timer = 0,
    cycling = false, cycle_timer = 0,
-   col = 8, mode = 1, point_right = true}
+   col = 8, mode = 1, point_right = true,
+   carry_sprite="food_green"}
 local bee_gravity = 0
 local bee_speed = 3
 local bee_jank_skip_rate = 1
@@ -144,9 +145,29 @@ function er_delete(entity, entities)
   del(entities, entity)
 end
 
+-- entity reaction: carry
+function er_carry(entity, entities)
+  if p.carry_sprite ~= nil then return end
+  p.carry_sprite = entity.type
+  del(entities, entity)
+end
+
+-- entity reaction: drop
+function er_drop(entity, entities)
+  if p.carry_sprite == nil then return end
+  add(entities, {type=p.carry_sprite,x=p.x,y=p.y})
+  p.carry_sprite = nil
+end
+
+-- entity reaction: drop
+function er_consume_carry(entity, entities)
+  if p.carry_sprite == nil then return end
+  p.carry_sprite = nil
+end
+
 local entities = {
-  {type="hive", x=64, y=floor_y-_s.hive.cy},
-  {type="food", x=136,y=floor_y,reactions={er_delete}}
+  {type="hive", x=64, y=floor_y-_s.hive.cy,reactions={er_consume_carry}},
+  {type="food", x=136,y=floor_y,reactions={er_carry}}
 }
 
 function update_buttons()
@@ -268,11 +289,16 @@ function check_overlap()
     if e_r ~= nil then
       local dx = e.x - p.x
       local dy = e.y - p.y
-      local d_squared = dx * dx + dy * dy
-      local d_squared_min_limit = bee_r + e_r
-      d_squared_min_limit = d_squared_min_limit * d_squared_min_limit
-      if d_squared < d_squared_min_limit then
-        e.is_touched = true
+      if abs(dx) < 16 and abs(dy) < 16 then
+        local d2 = len2(dx,dy)
+        local d2_limit = pow2(bee_r + e_r)
+        if d2 < d2_limit then
+          e.is_touched = true
+          log("colliding", e.type, bee_r, e_r)
+          log("colliding", dx, dy)
+          log("colliding", d2, d2_limit)
+          log("colliding", e.x, e.y, p.x, p.y)
+        end
       end
     end
   end
@@ -289,7 +315,6 @@ function apply_overlap()
       if reactions ~= nil then
         log("#reactions", #reactions)
         for reaction in all(reactions) do
-          log"reaction!"
           reaction(e, entities)
         end
       end
@@ -377,6 +402,11 @@ function _draw()
     spr(s(e.type, e.x, e.y))
   end
 
+  -- bee carry
+  if p.carry_sprite ~= nil then
+    local offset_y = _s.bee.cy + _s[p.carry_sprite].cy
+    spr(s(p.carry_sprite, p.x, p.y + offset_y))
+  end
   -- bee
   spr(s("bee", p.x, p.y, not p.point_right))
 end
