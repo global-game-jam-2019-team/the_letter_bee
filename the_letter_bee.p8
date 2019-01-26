@@ -23,7 +23,7 @@ local bee_jank_factor_x = .5
 local normal_gravity = 5
 
 -- the y position of the floor
-local floor_y = 128 - 40
+local floor_y = 128 - 32
 local hive_wall_thickness = 8
 
 -------------------------- util --
@@ -420,7 +420,7 @@ end
 
 function _draw_overworld()
   cls"12"
-  rectfill(0,floor_y, 128,128, 3)
+  rectfill(cam_x,floor_y, 128+cam_x,128, 3)
   camera(cam_x,0)
   local screen = get_screen(cam_x)
 
@@ -477,6 +477,7 @@ end
 
 function _draw_hive()
   cls"15"
+  camera(cam_x,0)
   -- map(0,64-16, 0,0, 16,16)
 
   -- entities
@@ -494,6 +495,7 @@ end
 function go_to_hive()
   _update = _update_hive
   _draw = _draw_hive
+  cam_x = 0
 end
 
 -- go_to_overworld()
@@ -502,7 +504,7 @@ go_to_hive()
 -- prep entities
 function _init()
   overworld_entities = {
-    {type="hive", x=64, y=76,reactions={go_to_hive}},
+    {type="hive", x=64, y=52,reactions={go_to_hive}},
     {type="food", x=136,y=floor_y,reactions={er_carry}}
   }
 
