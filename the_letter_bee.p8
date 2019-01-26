@@ -7,11 +7,12 @@ __lua__
 --------------------------------
 
 local cam_x = 0
+local cam_x_screen_limit = 16
+
 local t = 0      -- current time
 local p =              -- player
- { x = 32, y = 32, move_timer = 0,
+ { x = 64, y = 64, move_timer = 0,
    cycling = false, cycle_timer = 0,
-<<<<<<< HEAD
    col = 8, mode = 1, point_right = true,
    carry_sprite="food_green"}
 local bee_gravity = 0
@@ -23,14 +24,10 @@ local normal_gravity = 5
 
 -- the y position of the floor
 local floor_y = 128 - 8
-=======
-   col = 8, mode = 1}
-local sand_behaviors = {}
-local gravity = 5
->>>>>>> fa21cc4004c46ac0ab529989ce7230e8e5047e5e
 
 -------------------------- util --
 
+printh("overwritten", "b", true)
 function log(text,val1,val2,val3,val4)
   if text == nil then text = "nil" end
   if val1 == nil then val1 = "nil" end
@@ -61,7 +58,7 @@ function round(n)
 end
 
 function rnd_index(a)
- return flr(rnd(a))+1
+ return flr(rnd(#a))+1
 end
 
 function cycle_arr(t, skips)
@@ -115,7 +112,6 @@ function b(i)
  return _b[i+1]
 end
 
-<<<<<<< HEAD
 -- sprite data
 _s = {
   bee        = {n=  1, w=1, h=1, cx=4, cy=4, r=4},
@@ -169,8 +165,6 @@ function er_consume_carry(entity, entities)
   p.carry_sprite = nil
 end
 
-=======
->>>>>>> fa21cc4004c46ac0ab529989ce7230e8e5047e5e
 function update_buttons()
  for i=1,6 do
   local cur = _b[i]
@@ -220,7 +214,6 @@ function _dump(name, v, depth)
  end
 end
 
-<<<<<<< HEAD
 function update_bee()
   p.y = p.y + bee_gravity
   if t % bee_jank_skip_rate ~= 0 then
@@ -234,34 +227,19 @@ end
 
 function apply_floors(entities)
   if p.y > floor_y then p.y = floor_y end
-=======
-function _init()
- printh("overwritten", "b", true)
-end
-
---------------------------------
------------- callback: update --
-function _update()
- t = (t + 1) % 32767
- update_buttons()
- control()
-
- -- monitor
- for i=0,5 do
-  local cur = b(i)
-  mon(cur.sym, cur.isdown, cur.count, cur.col)
- end
- monf("m", p.mode == 0, 1.0, 11)
- monf("c", true, 1.0, p.col)
->>>>>>> fa21cc4004c46ac0ab529989ce7230e8e5047e5e
 end
 
 function control()
-  local factor = 5
-  if b(1).isdown then
-    cam_x = cam_x + factor
+  -- left
+  if b(0).isdown then
+    p.x = p.x - bee_speed
+    p.point_right = false
   end
-<<<<<<< HEAD
+  -- right
+  if b(1).isdown then
+    p.x = p.x + bee_speed
+    p.point_right = true
+  end
   -- up
   if b(2).isdown then p.y = p.y - bee_speed end
   -- down
@@ -309,11 +287,15 @@ function apply_overlap(entities)
         end
       end
     end
-=======
-  if b(0).isdown then
-    cam_x = cam_x - factor
->>>>>>> fa21cc4004c46ac0ab529989ce7230e8e5047e5e
   end
+end
+
+function update_camera()
+  cam_x_right_limit = p.x - cam_x_screen_limit
+  cam_x_left_limit = p.x - (128 - cam_x_screen_limit)
+  log("bee", cam_x_right_limit, cam_x_left_limit, p.x)
+  if cam_x > cam_x_right_limit then cam_x = cam_x_right_limit end
+  if cam_x < cam_x_left_limit then cam_x = cam_x_left_limit end
 end
 
 --------------------------------
@@ -352,36 +334,16 @@ end
 
 local home_maps = {1}
 local available_maps = {2,3,4,5,6,7,8}
+function pick_map()
+  local i = rnd_index(available_maps)
+  log("map", i, #available_maps)
+  return available_maps[rnd_index(available_maps)]
+end
 
-<<<<<<< HEAD
 function draw_entities(entities)
   for i=1,#entities do
     local e = entities[i]
     spr(s(e.type, e.x, e.y))
-=======
-local home_map = 1
-local map_list_right = {3,3,5,3,5,7,9}
-local map_list_left = {2,4,6,8}
-
-function _draw()
-  cls()
-  camera(cam_x,0)
-  local screen = get_screen(cam_x)
-
-  -- home
-  draw_screen(home_map, 0)
-
-  -- left
-  for i=1,#map_list_left do
-    local map = map_list_left[i]
-    draw_screen(map, -i)
-  end
-
-  -- right
-  for i=1,#map_list_right do
-    local map = map_list_right[i]
-    draw_screen(map, i)
->>>>>>> fa21cc4004c46ac0ab529989ce7230e8e5047e5e
   end
 end
 
@@ -540,6 +502,7 @@ function _init()
     {type="honeycomb", x=96,y=96,reactions={er_consume_carry}}
   }
 end
+
 
 __gfx__
 00000000000000000000000000000002200000000000000000077700bbbbbbbb000000000000000000000bbbbbbbbbbbbbbbbbbbbbb000000000000aa0000000
