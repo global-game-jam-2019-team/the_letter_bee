@@ -550,8 +550,6 @@ go_to_hive()
 
 -- prep entities
 function _init()
-  init_overworld()
-
   overworld_entities = {
     {type="food", x=136,y=floor_y,reactions={er_carry}}
   }
@@ -570,9 +568,7 @@ function _init()
     },
     [2] = {
       default_entities = {
-        {type="food", x=0,y=floor_y,reactions={er_carry}},
-        {type="food_pink", x=136,y=floor_y,reactions={er_carry}},
-        {type="food_blue", x=136,y=floor_y,reactions={er_carry}}
+        {type="food", x=78,y=86,reactions={er_carry}},
       },
       update = function() log"2222 update 2222" end
     },
@@ -580,6 +576,8 @@ function _init()
 
     }
   }
+  
+  init_overworld()
 end
 
 
