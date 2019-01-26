@@ -7,26 +7,16 @@ __lua__
 --------------------------------
 
 local cam_x = 0
-local cam_x_screen_limit = 16
-
 local t = 0      -- current time
 local p =              -- player
- { x = 64, y = 64, move_timer = 0,
+ { x = 32, y = 32, move_timer = 0,
    cycling = false, cycle_timer = 0,
-   col = 8, mode = 1, point_right = true}
-local bee_gravity = 0
-local bee_speed = 3
-local bee_jank_skip_rate = 1
-local bee_jank_factor_y = 2
-local bee_jank_factor_x = .5
-local normal_gravity = 5
-
--- the y position of the floor
-local floor_y = 128 - 8
+   col = 8, mode = 1}
+local sand_behaviors = {}
+local gravity = 5
 
 -------------------------- util --
 
-printh("overwritten", "b", true)
 function log(text,val1,val2,val3,val4)
   if text == nil then text = "nil" end
   if val1 == nil then val1 = "nil" end
@@ -57,7 +47,7 @@ function round(n)
 end
 
 function rnd_index(a)
- return flr(rnd(#a))+1
+ return flr(rnd(a))+1
 end
 
 function cycle_arr(t, skips)
@@ -111,44 +101,6 @@ function b(i)
  return _b[i+1]
 end
 
--- sprite data
-_s = {
-  bee        = {n=  1, w=1, h=1, cx=4, cy=4, r=4},
-  bee_green  = {n=  2, w=1, h=1, cx=4, cy=4, r=4},
-  bee_blue   = {n= 17, w=1, h=1, cx=4, cy=4, r=4},
-  bee_pink   = {n= 18, w=1, h=1, cx=4, cy=4, r=4},
-  food       = {n= 16, w=1, h=1, cx=4, cy=4, r=4},
-  food_green = {n= 32, w=1, h=1, cx=4, cy=4, r=4},
-  food_pink  = {n= 33, w=1, h=1, cx=4, cy=4, r=4},
-  food_blue  = {n= 34, w=1, h=1, cx=4, cy=4, r=4},
-
-  hive   =     {n=  3, w=2, h=2, cx=8, cy=8, r=8},
-  cloud  =     {n=  5, w=2, h=1, cx=8, cy=8},
-  cloud2 =     {n= 48, w=2, h=1, cx=8, cy=8},
-  floor  =     {n=  7, w=2, h=1, cx=4, cy=4},
-  speech =     {n=  8, w=2, h=2, cx=12,cy=16},
-  speech =     {n=  7, w=2, h=1, cx=12,cy=16},
-
-  honeycomb =  {n= 35, w=2, h=2, cx=8, cy=8, r=8},
-  -- TODO: Tree.
-}
-
--- gathers spr parameters
-function s(name, x, y, flip_x, flip_y)
-  local sd = _s[name]
-  return sd.n, x-sd.cx, y-sd.cy, sd.w, sd.h, flip_x, flip_y
-end
-
--- entity reaction: delete
-function er_delete(entity, entities)
-  del(entities, entity)
-end
-
-local entities = {
-  {type="hive", x=64, y=floor_y-_s.hive.cy},
-  {type="food", x=136,y=floor_y,reactions={er_delete}}
-}
-
 function update_buttons()
  for i=1,6 do
   local cur = _b[i]
@@ -199,6 +151,7 @@ function _dump(name, v, depth)
 end
 
 function _init()
+ printh("overwritten", "b", true)
 end
 
 --------------------------------
@@ -206,103 +159,25 @@ end
 function _update()
  t = (t + 1) % 32767
  update_buttons()
- update_bee()
  control()
- apply_floors()
- check_overlap()
 
- apply_overlap()
-
- update_camera()
-
- log("stats","mem",stat(0),"cpu",stat(1))
  -- monitor
---  for i=0,5 do
---   local cur = b(i)
---   mon(cur.sym, cur.isdown, cur.count, cur.col)
---  end
---  monf("m", p.mode == 0, 1.0, 11)
---  monf("c", true, 1.0, p.col)
-end
-
-function update_bee()
-  p.y = p.y + bee_gravity
-  if t % bee_jank_skip_rate ~= 0 then
-    local angle = rnd(1)
-    local fx = cos(angle) * bee_jank_factor_x
-    local fy = sin(angle) * bee_jank_factor_y
-    p.x = p.x + fx
-    p.y = p.y + fy
-  end
-end
-
-function apply_floors()
-  if p.y > floor_y then p.y = floor_y end
+ for i=0,5 do
+  local cur = b(i)
+  mon(cur.sym, cur.isdown, cur.count, cur.col)
+ end
+ monf("m", p.mode == 0, 1.0, 11)
+ monf("c", true, 1.0, p.col)
 end
 
 function control()
-  -- left
-  if b(0).isdown then
-    p.x = p.x - bee_speed
-    p.point_right = false
-  end
-  -- right
+  local factor = 5
   if b(1).isdown then
-    p.x = p.x + bee_speed
-    p.point_right = true
+    cam_x = cam_x + factor
   end
-  -- up
-  if b(2).isdown then p.y = p.y - bee_speed end
-  -- down
-  if b(3).isdown then p.y = p.y + bee_speed end
-end
-
--- determines which entities the bee is touching
-function check_overlap()
-  local bee_r = _s["bee"].r
-  for i=1,#entities do
-    local e = entities[i]
-    e.is_touched = false
-    local sprite = _s[e.type]
-    local e_r = sprite.r
-    if e_r ~= nil then
-      local dx = e.x - p.x
-      local dy = e.y - p.y
-      local d_squared = dx * dx + dy * dy
-      local d_squared_min_limit = bee_r + e_r
-      d_squared_min_limit = d_squared_min_limit * d_squared_min_limit
-      if d_squared < d_squared_min_limit then
-        e.is_touched = true
-      end
-    end
+  if b(0).isdown then
+    cam_x = cam_x - factor
   end
-end
-
--- reacts to the bee touching entities
-function apply_overlap()
-  _s.bee.n = 1
-  for i=1,#entities do
-    local e = entities[i]
-    if e.is_touched then
-      _s.bee.n = 2
-      local reactions = e.reactions
-      if reactions ~= nil then
-        log("#reactions", #reactions)
-        for reaction in all(reactions) do
-          log"reaction!"
-          reaction(e, entities)
-        end
-      end
-    end
-  end
-end
-
-function update_camera()
-  cam_x_right_limit = p.x - cam_x_screen_limit
-  cam_x_left_limit = p.x - (128 - cam_x_screen_limit)
-  log("bee", cam_x_right_limit, cam_x_left_limit, p.x)
-  if cam_x > cam_x_right_limit then cam_x = cam_x_right_limit end
-  if cam_x < cam_x_left_limit then cam_x = cam_x_left_limit end
 end
 
 --------------------------------
@@ -341,15 +216,10 @@ end
 
 local home_maps = {1}
 local available_maps = {2,3,4,5,6,7,8}
-function pick_map()
-  local i = rnd_index(available_maps)
-  log("map", i, #available_maps)
-  return available_maps[rnd_index(available_maps)]
-end
 
 local home_map = 1
-local map_list_right = {pick_map(),pick_map(),pick_map(),pick_map(),pick_map(),pick_map()}
-local map_list_left = {pick_map(),pick_map(),pick_map(),pick_map(),pick_map()}
+local map_list_right = {3,3,5,3,5,7,9}
+local map_list_left = {2,4,6,8}
 
 function _draw()
   cls()
@@ -370,15 +240,6 @@ function _draw()
     local map = map_list_right[i]
     draw_screen(map, i)
   end
-
-  -- entities
-  for i=1,#entities do
-    local e = entities[i]
-    spr(s(e.type, e.x, e.y))
-  end
-
-  -- bee
-  spr(s("bee", p.x, p.y, not p.point_right))
 end
 
 -------------------------------
@@ -585,13 +446,19 @@ __map__
 0707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707
 __sfx__
 000200000613006140061400614006130071300712006120051100510005100051000510006100061200613005140051300511006100061200613006140061400612006110061000610006100051200413005140
-010e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151001670023200247000000000000000000000000000232002120023200212001b200192001b20019200
-010e000000000000000d6330d6000d600000000d6330d6000d600000000d633000000d600000000d633000000d600000000d633000000d600000000d633000000d600000000d633000000d600000000d63300000
-000e00000d2210d2000d2200d2000d2200d2000d2200120014221000001422001200142200120014220012000c221002000c220002000c220002000c220002000f221032000f2200f2000f220032000f22003200
-000e00003d6000000400000000003d6150000000000000003d6000000400000000003d6150000000000000003d6000000400000000003d6150000000000000003d6000000400000000003d615000000000000000
+010e00000d2201920016200141001722017100161001510016220241002410023100172001b220171001510023200232002470000000000000000000000222002120023200212001b200192001b2001920000000
+010e000000000000000d6230d6000d600000000d6230d6000d600000000d623000000d600000000d623000000d600000000d623000000d600000000d623000000d600000000d623000000d600000000d62300000
+000e00000d2100d2000d2100d2000d2100d2000d21001200142100000014210012001421001200142100120012210002001221000200122100020012210002001721003200172100f20017210032001721003200
+010e00003d6000000400000000003d6000000000000000003d6153d6003d600000003d600000003d600000003d6000000400000000003d6000000000000000003d615000043d615000003d6003d6003d60000000
 000e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151001670023200247000000000000000000000000000232102121023210212101b210192101b21019210
-010800000664400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0003000023e2423e2022e201fe2021e2020e201fe201ee201ce201ae2017e2014e2010e2010e10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000400001cf301ff3025f302bf302ef3034f3009100061000710009100071000a100091000810009100091000810008100071000a10008100081000a10008100081000710009100071000a100081000910009100
+0004000031120291201e12017120141200e12009120041202bb3022b301bb3011b300ab3004b3001b202a310263101c3100f3100831002b100bd0005d0001d0001d0001d0001d000000000000000000000000000
+010e00003d6000000400000000003d6000000000000000003d6150000400000000003d600000003d600000003d6000000400000000003d6000000000000000003d615000043d615000003d615000003d60000000
+010e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151002322023200232200000000000000000000000000222202120022220212001b200192002022019200
 __music__
 01 01020304
-02 05020304
+00 0a020309
+00 01020304
+02 05020309
 
