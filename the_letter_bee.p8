@@ -466,7 +466,6 @@ end
 function go_to_overworld()
   _update = _update_overworld
   _draw = _draw_overworld
-  init_overworld()
 end
 
 -- returns the map_id of an available map, probabilistically
@@ -551,6 +550,8 @@ go_to_hive()
 
 -- prep entities
 function _init()
+  init_overworld()
+
   overworld_entities = {
     {type="food", x=136,y=floor_y,reactions={er_carry}}
   }
@@ -569,7 +570,9 @@ function _init()
     },
     [2] = {
       default_entities = {
-        {type="food", x=0,y=floor_y,reactions={er_carry}}
+        {type="food", x=0,y=floor_y,reactions={er_carry}},
+        {type="food_pink", x=136,y=floor_y,reactions={er_carry}},
+        {type="food_blue", x=136,y=floor_y,reactions={er_carry}}
       },
       update = function() log"2222 update 2222" end
     },
