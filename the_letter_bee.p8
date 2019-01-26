@@ -1,7 +1,287 @@
 pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
-print "hello world"
+--------------------------------
+------ the letter b-------------
+-- global game jam 2019 --------
+--------------------------------
+
+local cam_x = 0
+local t = 0      -- current time
+local p =              -- player
+ { x = 32, y = 32, move_timer = 0,
+   cycling = false, cycle_timer = 0,
+   col = 8, mode = 1}
+local sand_behaviors = {}
+local gravity = 5
+
+-------------------------- util --
+
+function log(text,val1,val2,val3,val4)
+  if text == nil then text = "nil" end
+  if val1 == nil then val1 = "nil" end
+  if val2 == nil then val2 = "nil" end
+  if val3 == nil then val3 = "nil" end
+  if val4 == nil then val4 = "nil" end
+  printh("["..t.."] "..text.."|"..val1.."|"..val2.."|"..val3.."|"..val4, "b")
+end
+function len(x,y)
+ return sqrt(len2(x,y))
+end
+
+function len2(x,y)
+ return x*x + y*y
+end
+
+function pow2(x)
+ return x * x
+end
+
+function step(n, inc)
+ return round(n/inc)*inc
+end
+
+function round(n)
+ local mod = n % 1
+ return mod > .5 and ceil(n) or flr(n)
+end
+
+function rnd_index(a)
+ return flr(rnd(a))+1
+end
+
+function cycle_arr(t, skips)
+ if skips > #t then error"skip too large" end
+ for i=1,skips do
+  t[i],t[i+skips-1] = t[i+skips-1],t[i]
+ end
+end
+
+function shuffle(t)
+ if type(t) ~= "table" then error"shuffle only works on tables" end
+ for i=#t,1,-1 do
+  local j = rnd_index(i-1)
+  t[i],t[j] = t[j],t[i]
+ end
+end
+
+function for_xy(x1,x2, y1,y2, func)
+ for x=x1,x2,sgn(x2-x1) do
+  for y=y1,y2,sgn(y2-y1) do
+   func(x,y)
+  end
+ end
+end
+
+
+--------------------------------
+----------------------- setup --
+cls(); rect(0,0,127,127,1)
+
+
+--------------------------------
+------------ callback: update --
+
+_b = {
+ { count=0, isdown=false, used=false,
+   sym="�", col= 8 }, -- left
+ { count=0, isdown=false, used=false,
+   sym="�", col= 9 }, -- right
+ { count=0, isdown=false, used=false,
+   sym="�", col=11 }, -- up
+ { count=0, isdown=false, used=false,
+   sym="�", col=12 }, -- down
+ { count=0, isdown=false, used=false,
+   sym="�", col=14 }, -- o
+ { count=0, isdown=false, used=false,
+   sym="�", col=15 }  -- x
+}
+
+function b(i)
+ return _b[i+1]
+end
+
+function update_buttons()
+ for i=1,6 do
+  local cur = _b[i]
+  isdown = btn(i-1)
+  cur.count = cur.count + 1
+  if isdown != cur.isdown then
+   cur.count = 0
+   cur.used = false
+  end
+  cur.isdown = isdown
+ end
+end
+
+function spaces(n)
+ local space = ""
+ for i=1,n do
+  space = space .. " "
+ end
+ return space
+end
+
+function dump(name, v)
+ _dump(name, v, 0)
+end
+
+-- todo: have this sort tables
+function _dump(name, v, depth)
+ local padding = spaces(depth*2)
+ if depth > 10 then
+  log(padding .. "depth limit reached")
+  return
+ end
+ if type(v) == "table" then
+  log(padding .. name .. " (table) len: " .. #v)
+  for k2,v2 in pairs(v) do
+   _dump(k2, v2, depth+1)
+  end
+ else
+  if type(v) == "boolean" then
+   v = v and "true" or "false"
+  elseif v == nil then
+   v = "nil"
+ elseif type(v) == "function" then
+   v = "function"
+  end
+  log(padding .. name .. " " .. v)
+ end
+end
+
+function _init()
+ printh("overwritten", "b", true)
+end
+
+--------------------------------
+------------ callback: update --
+function _update()
+ t = (t + 1) % 32767
+ update_buttons()
+ control()
+
+ -- monitor
+ for i=0,5 do
+  local cur = b(i)
+  mon(cur.sym, cur.isdown, cur.count, cur.col)
+ end
+ monf("m", p.mode == 0, 1.0, 11)
+ monf("c", true, 1.0, p.col)
+end
+
+function control()
+  local factor = 5
+  if b(1).isdown then
+    cam_x = cam_x + factor
+  end
+  if b(0).isdown then
+    cam_x = cam_x - factor
+  end
+end
+
+--------------------------------
+-------------- callback: draw --
+
+-- gets the (x,y) offset for rendering a screen worth of map (16,16)
+function get_map_offset(map_number)
+  local row = flr(map_number / 8)
+  local column = (map_number - 1) % 8
+  return column*16, row*16
+end
+
+-- gets the (sx,sy) offset for rendering a screen worth of
+-- map a certain distance from home
+-- 0 is home
+-- 1 is "one screen right of home"
+-- -1 is "one screen left of home"
+function get_screen_offset(distance_from_home)
+  local sx = 128 * distance_from_home
+  local sy = 0
+  return sx,sy
+end
+
+-- draws one map on the screen, offset appropriately
+-- distance_from_home: 0 = origin; -1 = one screen left; +1 = one screen right
+-- map_number: 1-indexed map ID, starting from top left
+function draw_screen(map_number, distance_from_home)
+  map_x, map_y = get_map_offset(map_number)
+  sx, sy = get_screen_offset(distance_from_home)
+  map(map_x,map_y, sx,sy, 16,16)
+end
+
+function get_screen(sx)
+  return flr(sx / 128)
+end
+
+local home_maps = {1}
+local available_maps = {2,3,4,5,6,7,8}
+
+local home_map = 1
+local map_list_right = {3,3,5,3,5,7,9}
+local map_list_left = {2,4,6,8}
+
+function _draw()
+  cls()
+  camera(cam_x,0)
+  local screen = get_screen(cam_x)
+
+  -- home
+  draw_screen(home_map, 0)
+
+  -- left
+  for i=1,#map_list_left do
+    local map = map_list_left[i]
+    draw_screen(map, -i)
+  end
+
+  -- right
+  for i=1,#map_list_right do
+    local map = map_list_right[i]
+    draw_screen(map, i)
+  end
+end
+
+-------------------------------
+-- utilities
+-------------------------------
+
+_mon_ordered = {}
+_mon = {}
+
+function monf(what, on_off, scale, col)
+ mon(what, on_off, scale*12, col)
+end
+
+function mon(what, on_off, scale, col)
+ cur = _mon[what] or {}
+ cur.what = what
+ cur.on_off = on_off
+ cur.scale = scale
+ cur.col = on_off and col or 5
+
+ if not _mon[what] then
+  add(_mon_ordered, cur)
+ end
+
+ _mon[what] = cur
+end
+
+function mon_draw(sx,sy)
+ rectfill(sx,sy-1,sx+8*#_mon_ordered+1,sy+8,7)
+ for k,v in pairs(_mon_ordered) do
+  color(v.col)
+  x = sx + k*8 - 6
+  print(v.what, x, sy)
+  if v.scale > 0 then
+   line(x,sy+6,x+min(6,v.scale),sy+6)
+  end
+  if v.scale > 6 then
+   line(x,sy+7,x+mid(0,6,v.scale-6),sy+7)
+  end
+ end
+end
+
 __gfx__
 00000000000000000000000000000002200000000000000000077700bbbbbbbb000000000000000000000bbbbbbbbbbbbbbbbbbbbbb000000000000000000000
 0000000000770005006600060000022a922000000000000000777770b3b3b3b30000077777700000000bbbbbbbbbbbbbbbbbbbbbbbbbb0000000000000000000
@@ -135,11 +415,11 @@ __map__
 1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151517
 1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151517
 1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515
-1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515
-1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515
-1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515
-1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515
-1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515
+1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515050605061515151515151515
+1515151515151515151515151515151515151515150506151515151515151515151515150506151515151515151515151515050605061515151515151515151515151515050605061515151515151515151515150506050615151515151515151515151515050605061515151515151515151505060506050615151515151515
+1515151505061515151515151515151515151515151505061515151515151515151515151505061515151515151515151515150506151515151515151515151515151515150506050615151515151515151515151505060506151515151515151515151505060506050615151515151515151515050605061515151515151515
+1515151515151515151515151515151515151515151515151515151515151515151515151515050615151515151515151515151505061515151515151515151515151515151505061515151515151515151515150506050615151515151515151515151515050605061515151515151515151515151515151515151515151515
+1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515150506151515151515151515
 1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515
 1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515
 1515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515
