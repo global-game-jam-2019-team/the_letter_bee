@@ -7,15 +7,26 @@ __lua__
 --------------------------------
 
 local cam_x = 0
+local cam_x_screen_limit = 16
+
 local t = 0      -- current time
 local p =              -- player
- { x = 32, y = 32, move_timer = 0,
+ { x = 64, y = 64, move_timer = 0,
    cycling = false, cycle_timer = 0,
-   col = 8, mode = 1}
-local gravity = 5
+   col = 8, mode = 1, point_right = true}
+local bee_gravity = 0
+local bee_speed = 3
+local bee_jank_skip_rate = 1
+local bee_jank_factor_y = 2
+local bee_jank_factor_x = .5
+local normal_gravity = 5
+
+-- the y position of the floor
+local floor_y = 128 - 8
 
 -------------------------- util --
 
+printh("overwritten", "b", true)
 function log(text,val1,val2,val3,val4)
   if text == nil then text = "nil" end
   if val1 == nil then val1 = "nil" end
@@ -47,7 +58,7 @@ function round(n)
 end
 
 function rnd_index(a)
- return flr(rnd(a))+1
+ return flr(rnd(#a))+1
 end
 
 function cycle_arr(t, skips)
@@ -97,6 +108,10 @@ _b = {
    sym="�", col=15 }  -- x
 }
 
+function b(i)
+ return _b[i+1]
+end
+
 -- sprite data
 _s = {
   bee        = {n=  1, w=1, h=1, cx=4, cy=4, r=4},
@@ -120,14 +135,20 @@ _s = {
 }
 
 -- gathers spr parameters
-function s(name, x, y)
+function s(name, x, y, flip_x, flip_y)
   local sd = _s[name]
-  return sd.n, x-sd.cx, y-sd.cy, sd.w, sd.h
+  return sd.n, x-sd.cx, y-sd.cy, sd.w, sd.h, flip_x, flip_y
 end
 
-function b(i)
- return _b[i+1]
+-- entity reaction: delete
+function er_delete(entity, entities)
+  del(entities, entity)
 end
+
+local entities = {
+  {type="hive", x=64, y=floor_y-_s.hive.cy},
+  {type="food", x=136,y=floor_y,reactions={er_delete}}
+}
 
 function update_buttons()
  for i=1,6 do
@@ -179,7 +200,6 @@ function _dump(name, v, depth)
 end
 
 function _init()
- printh("overwritten", "b", true)
 end
 
 --------------------------------
@@ -187,25 +207,103 @@ end
 function _update()
  t = (t + 1) % 32767
  update_buttons()
+ update_bee()
  control()
+ apply_floors()
+ check_overlap()
 
+ apply_overlap()
+
+ update_camera()
+
+ log("stats","mem",stat(0),"cpu",stat(1))
  -- monitor
- for i=0,5 do
-  local cur = b(i)
-  mon(cur.sym, cur.isdown, cur.count, cur.col)
- end
- monf("m", p.mode == 0, 1.0, 11)
- monf("c", true, 1.0, p.col)
+--  for i=0,5 do
+--   local cur = b(i)
+--   mon(cur.sym, cur.isdown, cur.count, cur.col)
+--  end
+--  monf("m", p.mode == 0, 1.0, 11)
+--  monf("c", true, 1.0, p.col)
+end
+
+function update_bee()
+  p.y = p.y + bee_gravity
+  if t % bee_jank_skip_rate ~= 0 then
+    local angle = rnd(1)
+    local fx = cos(angle) * bee_jank_factor_x
+    local fy = sin(angle) * bee_jank_factor_y
+    p.x = p.x + fx
+    p.y = p.y + fy
+  end
+end
+
+function apply_floors()
+  if p.y > floor_y then p.y = floor_y end
 end
 
 function control()
-  local factor = 5
-  if b(1).isdown then
-    cam_x = cam_x + factor
-  end
+  -- left
   if b(0).isdown then
-    cam_x = cam_x - factor
+    p.x = p.x - bee_speed
+    p.point_right = false
   end
+  -- right
+  if b(1).isdown then
+    p.x = p.x + bee_speed
+    p.point_right = true
+  end
+  -- up
+  if b(2).isdown then p.y = p.y - bee_speed end
+  -- down
+  if b(3).isdown then p.y = p.y + bee_speed end
+end
+
+-- determines which entities the bee is touching
+function check_overlap()
+  local bee_r = _s["bee"].r
+  for i=1,#entities do
+    local e = entities[i]
+    e.is_touched = false
+    local sprite = _s[e.type]
+    local e_r = sprite.r
+    if e_r ~= nil then
+      local dx = e.x - p.x
+      local dy = e.y - p.y
+      local d_squared = dx * dx + dy * dy
+      local d_squared_min_limit = bee_r + e_r
+      d_squared_min_limit = d_squared_min_limit * d_squared_min_limit
+      if d_squared < d_squared_min_limit then
+        e.is_touched = true
+      end
+    end
+  end
+end
+
+-- reacts to the bee touching entities
+function apply_overlap()
+  _s.bee.n = 1
+  for i=1,#entities do
+    local e = entities[i]
+    if e.is_touched then
+      _s.bee.n = 2
+      local reactions = e.reactions
+      if reactions ~= nil then
+        log("#reactions", #reactions)
+        for reaction in all(reactions) do
+          log"reaction!"
+          reaction(e, entities)
+        end
+      end
+    end
+  end
+end
+
+function update_camera()
+  cam_x_right_limit = p.x - cam_x_screen_limit
+  cam_x_left_limit = p.x - (128 - cam_x_screen_limit)
+  log("bee", cam_x_right_limit, cam_x_left_limit, p.x)
+  if cam_x > cam_x_right_limit then cam_x = cam_x_right_limit end
+  if cam_x < cam_x_left_limit then cam_x = cam_x_left_limit end
 end
 
 --------------------------------
@@ -244,10 +342,15 @@ end
 
 local home_maps = {1}
 local available_maps = {2,3,4,5,6,7,8}
+function pick_map()
+  local i = rnd_index(available_maps)
+  log("map", i, #available_maps)
+  return available_maps[rnd_index(available_maps)]
+end
 
 local home_map = 1
-local map_list_right = {3,3,5,3,5,7,9}
-local map_list_left = {2,4,6,8}
+local map_list_right = {pick_map(),pick_map(),pick_map(),pick_map(),pick_map(),pick_map()}
+local map_list_left = {pick_map(),pick_map(),pick_map(),pick_map(),pick_map()}
 
 function _draw()
   -- reset
@@ -272,8 +375,14 @@ function _draw()
     draw_screen(map, i)
   end
 
+  -- entities
+  for i=1,#entities do
+    local e = entities[i]
+    spr(s(e.type, e.x, e.y))
+  end
+
   -- bee
-  spr(s("bee", 64, 64))
+  spr(s("bee", p.x, p.y, not p.point_right))
 end
 
 -------------------------------
