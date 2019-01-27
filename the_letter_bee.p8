@@ -807,6 +807,7 @@ function _draw_overworld()
 end
 
 function go_to_overworld()
+  if all_goals then return end
   music(0)
   _update = _update_overworld
   _draw = _draw_overworld
@@ -902,6 +903,39 @@ function _update_hive()
   log("stats","mem",stat(0),"cpu",stat(1))
 end
 
+function go_to_end()
+  music(0)
+  _update = _update_end
+  _draw = _draw_end
+end
+
+function _draw_end()
+  if #hearts < 1000 then
+    cls"14"
+  end
+  camera(0,0)
+  sspr(0, 48, 32, 16, 10, 10, 108, 32)
+
+  too_many_hearts(-1, 1, 10)
+
+  draw_entities(end_entities)
+
+  -- -- bee
+  -- spr(s(p.sprite, p.x, p.y, not p.point_right))
+end
+
+function _update_end()
+  t = (t + 1) % 32767
+  update_buttons()
+  update_bee()
+  control(hive_entities)
+  -- for i=#hearts,1,-1 do
+  --   if i % 10 > 5 then
+  --     del(hearts, hearts[i])
+  --   end
+  -- end
+end
+
 function draw_busy_bees(sprite, count, seed, tx, ty)
   local reseed = rnd(1000)
   srand(seed)
@@ -915,46 +949,43 @@ end
 
 function _draw_hive()
   camera(0,0)
-  if #hearts < 1500 then 
-    cls"15"
-    draw_busy_bees(_s.bee_busy,   50, 100,  5, 1)
-    draw_busy_bees(_s.bee_busier, 50, 101, -5, 1)
-    draw_busy_bees(_s.bee_busy,   50, 102, -3, 2)
-    draw_busy_bees(_s.bee_busier, 50, 103,  3, 2)
+  cls"15"
+  draw_busy_bees(_s.bee_busy,   50, 100,  5, 1)
+  draw_busy_bees(_s.bee_busier, 50, 101, -5, 1)
+  draw_busy_bees(_s.bee_busy,   50, 102, -3, 2)
+  draw_busy_bees(_s.bee_busier, 50, 103,  3, 2)
 
-    map( 0,64-16, 0,0, 16,16)
-    map(16,64-16, 0,0, 16,16)
+  map( 0,64-16, 0,0, 16,16)
+  map(16,64-16, 0,0, 16,16)
 
-    -- entities
-    draw_entities(hive_entities)
+  -- entities
+  draw_entities(hive_entities)
 
-    -- bee carry
-    if p.carry_sprite ~= nil then
-      local offset_y = _s[p.sprite].cy + _s[p.carry_sprite].cy
-      spr(s(p.carry_sprite, p.x, p.y + offset_y))
-    end
-    -- bee
-    spr(s(p.sprite, p.x, p.y, not p.point_right))
+  -- bee carry
+  if p.carry_sprite ~= nil then
+    local offset_y = _s[p.sprite].cy + _s[p.carry_sprite].cy
+    spr(s(p.carry_sprite, p.x, p.y + offset_y))
   end
+  -- bee
+  spr(s(p.sprite, p.x, p.y, not p.point_right))
 
-  -- all_goals = true
   if all_goals then
-    too_many_hearts()
-
-    if #hearts >= 1500 then
-      -- TODO: draw ending sprite
-      -- bee
-      spr(s(p.sprite, p.x, p.y, not p.point_right))
-    end
+    too_many_hearts(0.5, 0, 10)
   end
 end
 
 hearts = {}
-function too_many_hearts(seed, count, f_cycle, speed, wave_width)
+heart_rate = 1
+function too_many_hearts(rate, h_min, h_max)
+  heart_rate = max(h_min, min(heart_rate + rate, h_max))
   if #hearts < 2000 then
-    for i=1,10 do
+    for i=1,heart_rate do
       add(hearts, {x=rnd(128+64)-32, y=rnd(32)+128})
     end
+  end
+
+  if #hearts > 1500 then
+    go_to_end()
   end
 
   for i=#hearts,1,-1 do
@@ -1158,11 +1189,38 @@ function _init()
       post_draws={epdf_speech_goal_indicator("food_pink")}},
     -- {type="food_pink", x=32-4, y=96-20-12,},
   }
+
+  end_entities = {
+    {type="bee_blue",  x=96,   y=96-20,
+      updates={eu_bee_jank}},
+    {type="speech",    x=96-4, y=96-20-12,
+      post_draws={epdf_speech_goal_indicator("food_blue")}},
+
+    {type="bee_green", x=64,   y=96-20,
+      updates={eu_bee_jank}},
+    {type="speech",    x=64-4, y=96-20-12,
+      post_draws={epdf_speech_goal_indicator("food_green")}},
+
+    {type="bee_pink",  x=32,   y=96-20,
+      updates={eu_bee_jank}},
+    {type="speech",    x=32-4, y=96-20-12,
+      post_draws={epdf_speech_goal_indicator("food_pink")}},
+
+    {type="bee", x=64,   y=128-20,
+      updates={eu_bee_jank}},
+    {type="speech",    x=64-4, y=128-20-12,
+      post_draws={epdf_speech_goal_indicator("heart")}},
+  }
+
   for entity in all(hive_entities) do
     entity.ox = entity.x
     entity.oy = entity.y
   end
   for entity in all(title_entities) do
+    entity.ox = entity.x
+    entity.oy = entity.y
+  end
+  for entity in all(end_entities) do
     entity.ox = entity.x
     entity.oy = entity.y
   end
