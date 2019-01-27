@@ -265,7 +265,7 @@ end
 -- determines which entities the bee is touching
 function check_overlap(entities)
   local bee_r = _s["bee"].r
-  for i=1,#entities do
+  for i=#entities,1,-1 do
     local e = entities[i]
     e.is_touched = false
     local sprite = _s[e.type]
@@ -291,7 +291,7 @@ end
 -- reacts to the bee touching entities
 function apply_overlap(entities)
   _s.bee.n = 1
-  for i=1,#entities do
+  for i=#entities,1,-1 do
     local e = entities[i]
     if e.is_touched then
       _s.bee.n = 2
@@ -569,6 +569,8 @@ function _init()
     [2] = {
       default_entities = {
         {type="food", x=78,y=86,reactions={er_carry}},
+        {type="food", x=54,y=86,reactions={er_carry}},
+        {type="food", x=94,y=86,reactions={er_carry}},
       },
       update = function() log"2222 update 2222" end
     },
