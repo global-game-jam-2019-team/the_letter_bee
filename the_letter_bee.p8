@@ -414,8 +414,8 @@ function apply_floors(entities)
   if p.y < p.r then p.y = p.r end
   if p.y > floor_y then p.y = floor_y end
   local right_limit = get_screen_offset(#map_list_right)
-  if p.x > right_limit then p.x = right_limit end
   local left_limit = get_screen_offset(-#map_list_left + 1)
+  if p.x > right_limit then p.x = right_limit end
   if p.x < left_limit then p.x = left_limit end
 end
 
@@ -643,10 +643,30 @@ function apply_map_updates(updates)
   end
 end
 
+function parallax_clouds(seed, count, speed, scale, y)
+  local y_spread = 24
+  local reseed = rnd(10000)
+  srand(seed)
+  local right_limit = get_screen_offset(#map_list_right)
+  local left_limit = abs(get_screen_offset(-#map_list_left + 1))
+  right_limit = right_limit / (speed * 2)
+  left_limit = left_limit / (speed * 2)
+  for i=1,count do
+    local sx = rnd(right_limit + left_limit) - left_limit
+    local sy = y + rnd(y_spread)
+    sx = sx + speed * -cam_x
+    spr(s("cloud", sx, sy))
+  end
+  srand(reseed)
+end
+
 function _draw_overworld()
   cls"12"
   rectfill(cam_x-64,floor_y, cam_x+128+64,128, 3)
   camera(cam_x,0)
+  parallax_clouds(100, 50, 0.25, 1, 16)
+  parallax_clouds(105, 50, 0.125, 1, 24)
+
   local screen = get_screen(cam_x)
 
   -- home
@@ -839,6 +859,11 @@ function _update_title()
   if b(5).isdown then
     game_start()
   end
+
+  if b(0).isdown and b(1).isdown then
+    game_start()
+    go_to_overworld()
+  end
 end
 
 function _draw_title()
@@ -869,12 +894,9 @@ function _draw_title()
   print ("press x to begin", 32, 128-30)
 end
 
-go_to_overworld()
-
 -- go_to_hive()
--- p.y = 64
-
--- go_to_title()
+-- go_to_overworld()
+go_to_title()
 
 -- the happy bee dance
 eu_bee_jank = euf_rose_xy{n=1,d=6,r=5,f_cycle=15}
