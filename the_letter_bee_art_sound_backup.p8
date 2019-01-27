@@ -16,14 +16,15 @@ local p =              -- player
    col = 8, mode = 1, point_right = true,
    carry_sprite="food_green"}
 local bee_gravity = 0
-local bee_speed = 3
-local bee_jank_skip_rate = 1
-local bee_jank_factor_y = 2
+local bee_speed = 1
+local bee_jank_skip_rate = 3
+local bee_jank_factor_y = 1.25
 local bee_jank_factor_x = .5
-local normal_gravity = 5
+local normal_gravity = 4
 
 -- the y position of the floor
-local floor_y = 128 - 8
+local floor_y = 128 - 32
+local hive_wall_thickness = 8
 
 -------------------------- util --
 
@@ -82,6 +83,14 @@ function for_xy(x1,x2, y1,y2, func)
    func(x,y)
   end
  end
+end
+
+function clone(input)
+  local t = {}
+  for key, value in pairs(input) do
+    t[key] = value
+  end
+  return t
 end
 
 
@@ -229,6 +238,13 @@ function apply_floors(entities)
   if p.y > floor_y then p.y = floor_y end
 end
 
+function apply_hive_walls(entities)
+  if p.y > 128-hive_wall_thickness then p.y = 128-hive_wall_thickness end
+  if p.x > 128-hive_wall_thickness then p.x = 128-hive_wall_thickness end
+  if p.y < hive_wall_thickness then p.y = hive_wall_thickness end
+  if p.x < hive_wall_thickness then p.x = hive_wall_thickness end
+end
+
 function control()
   -- left
   if b(0).isdown then
@@ -325,6 +341,7 @@ end
 function draw_screen(map_number, distance_from_home)
   map_x, map_y = get_map_offset(map_number)
   sx, sy = get_screen_offset(distance_from_home)
+  rect(sx,sy, sx+128, sy+128)
   map(map_x,map_y, sx,sy, 16,16)
 end
 
@@ -332,9 +349,7 @@ function get_screen(sx)
   return flr(sx / 128)
 end
 
-local home_maps = {1}
-local available_maps = {2,3,4,5,6,7,8}
-function pick_map()
+function pick_map_old()
   local i = rnd_index(available_maps)
   log("map", i, #available_maps)
   return available_maps[rnd_index(available_maps)]
@@ -391,9 +406,13 @@ end
 --------------------------------
 ------------- mode: overworld --
 
-local home_map = 1
-local map_list_right = {pick_map(),pick_map(),pick_map(),pick_map(),pick_map(),pick_map()}
-local map_list_left = {pick_map(),pick_map(),pick_map(),pick_map(),pick_map()}
+
+home_maps = {1}
+available_maps = {2,3,4,5,6,7,8}
+
+home_map = 1
+map_list_right = {pick_map_old(),pick_map_old(),pick_map_old(),pick_map_old(),pick_map_old(),pick_map_old()}
+map_list_left = {pick_map_old(),pick_map_old(),pick_map_old(),pick_map_old(),pick_map_old()}
 
 function _update_overworld()
   t = (t + 1) % 32767
@@ -412,6 +431,7 @@ end
 
 function _draw_overworld()
   cls"12"
+  rectfill(cam_x,floor_y, 128+cam_x,128, 3)
   camera(cam_x,0)
   local screen = get_screen(cam_x)
 
@@ -448,6 +468,42 @@ function go_to_overworld()
   _draw = _draw_overworld
 end
 
+-- returns the map_id of an available map, probabilistically
+function pick_map()
+  local i = rnd_index(available_maps)
+  log("map", i, #available_maps)
+  return available_maps[rnd_index(available_maps)]
+end
+
+function init_overworld()
+  home_map = 1
+  map_list_left = {2,3}
+  map_list_right = {2,3}
+  overworld_entities = {}
+  init_map_data_all({home_map}, 0)
+  init_map_data_all(map_list_left, -1)
+  init_map_data_all(map_list_right, 1)
+end
+
+function init_map_data_all(map_ids, direction)
+  for i=1,#map_ids do
+    local map_id = map_ids[i]
+    local map_data = map_setup[map_id]
+    local distance_from_home = direction * i
+    init_map_data_one(map_setup[map_id], map_id, distance_from_home)
+  end
+end
+
+function init_map_data_one(map_data, map_id, distance_from_home)
+  local screen_offset_x, _ = get_screen_offset(distance_from_home)
+  log("init_map_data_one", map_id, distance_from_home, screen_offset_x, _)
+  for entity in all(map_data.default_entities) do
+    local new_entity = clone(entity)
+    new_entity.x = new_entity.x + screen_offset_x
+    add(overworld_entities, new_entity)
+  end
+end
+
 --------------------------------
 ------------------ mode: hive --
 
@@ -457,7 +513,7 @@ function _update_hive()
   update_bee()
   control()
 
-  apply_floors(hive_entities)
+  apply_hive_walls(hive_entities)
   check_overlap(hive_entities)
   apply_overlap(hive_entities)
 
@@ -468,6 +524,7 @@ end
 
 function _draw_hive()
   cls"15"
+  camera(cam_x,0)
   -- map(0,64-16, 0,0, 16,16)
 
   -- entities
@@ -485,6 +542,7 @@ end
 function go_to_hive()
   _update = _update_hive
   _draw = _draw_hive
+  cam_x = 0
 end
 
 -- go_to_overworld()
@@ -493,7 +551,6 @@ go_to_hive()
 -- prep entities
 function _init()
   overworld_entities = {
-    {type="hive", x=64, y=76,reactions={go_to_hive}},
     {type="food", x=136,y=floor_y,reactions={er_carry}}
   }
 
@@ -501,6 +558,26 @@ function _init()
     {type="hive",      x=64, y=128-_s.hive.cy,reactions={go_to_overworld}},
     {type="honeycomb", x=96,y=96,reactions={er_consume_carry}}
   }
+  
+  map_setup = {
+    [1] = {
+      default_entities = {
+        {type="hive", x=64, y=52,reactions={go_to_hive}},
+      },
+      update = function(offset_x) log"2222 update 2222" end
+    },
+    [2] = {
+      default_entities = {
+        {type="food", x=78,y=86,reactions={er_carry}},
+      },
+      update = function() log"2222 update 2222" end
+    },
+    [3] = {
+
+    }
+  }
+  
+  init_overworld()
 end
 
 
@@ -517,17 +594,17 @@ __gfx__
 00aa9a0000660006006600062a9a9a922a9a9a920a8a0000020220200000000007777777777777603333333333833333333333e3333333330a499999909994a0
 0aa979a0065560600655606029a9a92442a9a9a20aaa077020212202000000000677777777777760333333333878333333333e7e333333330994990009994990
 0aaa9aa000655cc000655ee029a9a2444429a9a200887667002112000000000000667777777666003333333333833333333333e3333333330a994999999499a0
-04aaaa400c161c1c0e868e1e2a9a9244442a9a92009a6670002112000007700000006667776000003333333333333333333333333333333300a9944994499a00
-004aa4001c1c1ccc8e8e8eee02a9a2444429a9200088770000282800007557000000000677000000333333333333333333333333333333330a9aaa9449aaa9a0
-0004400001212100084848000029a2444429a200409aa000020220200067760000000000670000003333333333333333333333333393333300a000a99a000a00
+00aaaa000c161c1c0e868e1e2a9a9244442a9a92009a6670002112000007700000006667776000003333333333333333333333333333333300a9944994499a00
+000aa0001c1c1ccc8e8e8eee02a9a2444429a9200088770000282800007557000000000677000000333333333333333333333333333333330a9aaa9449aaa9a0
+0000000001212100084848000029a2444429a200409aa000020220200067760000000000670000003333333333333333333333333393333300a000a99a000a00
 00000000005050000050500000022222222220000444000020000002000660000000000006000000333338333333333333333333397933330000000aa0000000
 000bb000000cc000000ee0000000000220000000000052222444000000588800000000000000000033338783333333333333333333933333000000f000000000
 00bb1b0000cc2c0000ee4e000000022992200000000052222444000000588888888000000000000033333833333333333e3333333333333300dd0ffff0000000
 0bb161b00cc2f2c00ee4f4e0000229999992200000005222244400000088885448888000000000003333333333333333e7e333333333333300dddffff0000000
 0bbb1bb00ccc2cc00eee4ee00229999229999220000052222444000008885f444f4888800000000033333333333333333e33333333333333000ddd2dddd00000
-03bbbb3001cccc1008eeee8029999224422999920000522224440000885ffffffffff8880000000033333333333333333333333333333333000dd222dddd0000
-003bb300001cc100008ee800299224444442299200005552444400005445666f456664f0000000003333333333333333333333333333333300ff22222dd00000
-000330000001100000088000299244444444299200005222244400000445666f456664f00000000033333e333333333333333383333333330ffff222ff000000
+00bbbb0000cccc0000eeee0029999224422999920000522224440000885ffffffffff8880000000033333333333333333333333333333333000dd222dddd0000
+000bb000000cc000000ee000299224444442299200005552444400005445666f456664f0000000003333333333333333333333333333333300ff22222dd00000
+000000000000000000000000299244444444299200005222244400000445666f456664f00000000033333e333333333333333383333333330ffff222ff000000
 000000000000000000000000299244444444299200005222244400000ff5666ff5666ff0000000005333e7e3333339333333387833333333000ffd2dff000000
 000770000000000000000000299244444444299200005222444400000f45666445666f400000000035333e3333339793333333833333333500000dddfff00000
 007777770000000000777700299224444442299200005552444400000f444f444f444f40000000000335333333333933333333333333535000000ddd3ff0b000
