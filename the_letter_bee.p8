@@ -721,18 +721,39 @@ end
 go_to_hive()
 p.y = 64
 
-function eu_bee_jank(entity, entities)
+-- generate a rose function for entities
+function euf_rose_xy(o)
   -- https://en.wikipedia.org/wiki/rose_(mathematics)
-  local n = 1;
-  local d = 6;
-  local k = n / d -- petal count; doubled if even? see article
-  local cycle_over_frames = 15
-  local theta = (t % (cycle_over_frames * d)) / cycle_over_frames
-  local offset_x = entity.petal_r * cos(k * theta) * cos(theta)
-  local offset_y = entity.petal_r * cos(k * theta) * sin(theta)
-  entity.x = entity.ox + offset_x
-  entity.y = entity.oy + offset_y
+  o = {
+    n = o.n and o.n or 1, -- the n value from wikipedia
+    d = o.d and o.d or 1, -- the d value from wikipedia
+    r = o.r and o.r or 16, -- the default radius
+    f_cycle = o.f_cycle, -- the cycle time. 30fps
+    f_offset = o.f_offset and o.f_offset or 0, -- the cycle offset
+    x_r = o.x_r and o.x_r or o.r or 16, -- the x radius
+    y_r = o.y_r and o.y_r or o.r or 16, -- the y radius
+    rotate = o.rotate and o.rotate or 0 -- the tilt
+  }
+
+  local k = o.n / o.d
+  log("rose1", o.n, o.d, o.r, o.f_cycle)
+  log("rose2", o.f_offset, o.x_r, o.y_r, o.rotate)
+  return function (entity, entities)
+    local theta =
+      ((t + o.f_offset) % (o.f_cycle * o.d)) / o.f_cycle
+    -- theta = theta + o.rotate
+    local offset_x = o.x_r * cos(k * theta) * cos(theta)
+    local offset_y = o.y_r * cos(k * theta) * sin(theta)
+    local xy_len = len(offset_x, offset_y)
+    local angle = atan2(offset_x, offset_y) + o.rotate
+    entity.x = entity.ox + xy_len * cos(angle)
+    entity.y = entity.oy + xy_len * sin(angle)
+  end
 end
+
+-- the happy bee dance
+eu_bee_jank = euf_rose_xy{n=1,d=6,r=5,f_cycle=15}
+eu_bee_jank_45 = euf_rose_xy{n=1,d=6,r=5,f_cycle=15,x_r=2,rotate=0.125}
 
 -- entity update: hornet roaming behavior
 function eu_hornet_cycle(entity, entities)
@@ -790,19 +811,22 @@ function _init()
     {type="exit",      x=64,   y=128,   reactions={go_to_overworld}},
     
     {type="honeycomb", x=96,   y=96,    reactions={erf_consume_carry_only("food_blue")}},
-    {type="bee_blue",  x=96,   y=96-20, petal_r=5,updates={eu_bee_jank}},
+    {type="bee_blue",  x=96,   y=96-20,
+      updates={eu_bee_jank}},
     {type="speech",    x=96-4, y=96-20-12,
       post_draws={epdf_speech_goal_indicator("food_blue")}},
     -- {type="food_blue", x=96-4, y=96-20-12,},
 
     {type="honeycomb", x=64,   y=48,    reactions={erf_consume_carry_only("food_green")}},
-    {type="bee_green", x=64,   y=48-20, petal_r=5,updates={eu_bee_jank}},
+    {type="bee_green", x=64,   y=48-20,
+      updates={eu_bee_jank}},
     {type="speech",    x=64-4, y=48-20-12,
       post_draws={epdf_speech_goal_indicator("food_green")}},
     -- {type="food_green",x=64-4, y=48-20-12,},
 
     {type="honeycomb", x=32,   y=96,    reactions={erf_consume_carry_only("food_pink")}},
-    {type="bee_pink",  x=32,   y=96-20, petal_r=5,updates={eu_bee_jank}},
+    {type="bee_pink",  x=32,   y=96-20,
+      updates={eu_bee_jank}},
     {type="speech",    x=32-4, y=96-20-12,
       post_draws={epdf_speech_goal_indicator("food_pink")}},
     -- {type="food_pink", x=32-4, y=96-20-12,},
