@@ -471,6 +471,11 @@ function _update_overworld()
   apply_map_updates(overworld_updates)
 
   update_camera()
+  if t % 10 < 5 then
+    _s.food.cy = 5
+  else
+    _s.food.cy = 4
+  end
 
   log("stats","mem",stat(0),"cpu",stat(1))
 end
@@ -656,9 +661,9 @@ function _init()
     },
     [2] = {
       default_entities = {
-        {type="food", x=78,y=86,reactions={er_carry}},
-        {type="food", x=54,y=86,reactions={er_carry}},
-        {type="food", x=94,y=86,reactions={er_carry}},
+        {type="food", x=79,y=87,reactions={er_carry}},
+        {type="food", x=55,y=87,reactions={er_carry}},
+        {type="food", x=95,y=87,reactions={er_carry}},
         {type="wasp",x=64,y=16,petal_r=12,
           updates={eu_wasp_cycle},reactions={er_drop, er_hurt}},
       },
