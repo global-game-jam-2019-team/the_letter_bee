@@ -133,17 +133,17 @@ _s = {
   bee_busy   = {n= 41, w=1, h=1, cx=0, cy=0, r=1},
   bee_busier = {n= 57, w=1, h=1, cx=0, cy=0, r=1},
 
-  food       = {n= 16, w=1, h=1, cx=4, cy=4, r=4},
-  food_green = {n= 32, w=1, h=1, cx=4, cy=4, r=4},
-  food_blue  = {n= 33, w=1, h=1, cx=4, cy=4, r=4},
-  food_pink  = {n= 34, w=1, h=1, cx=4, cy=4, r=4},
+  food       = {n= 16, w=1, h=1, cx=4, cy=4, r=4, bouncy=true},
+  food_green = {n= 32, w=1, h=1, cx=4, cy=4, r=4, bouncy=true},
+  food_blue  = {n= 33, w=1, h=1, cx=4, cy=4, r=4, bouncy=true},
+  food_pink  = {n= 34, w=1, h=1, cx=4, cy=4, r=4, bouncy=true},
 
   hive   =     {n=  3, w=2, h=2, cx=8, cy=8, r=8},
   exit   =     {n=  0, w=1, h=1, cx=8, cy=8, r=8},
   cloud  =     {n=  5, w=2, h=1, cx=8, cy=8},
   cloud2 =     {n= 48, w=2, h=1, cx=8, cy=8},
   floor  =     {n=  7, w=2, h=1, cx=4, cy=4},
-  speech =     {n=  8, w=2, h=2, cx=8, cy=8},
+  speech =     {n=  8, w=2, h=2, cx=8, cy=8, bouncy=true},
   sun    =     {n= 14, w=2, h=2, cx=8, cy=8},
   smoke_l=     {n= 50, w=1, h=1, cx=4, cy=4},
   smoke_s=     {n= 23, w=1, h=1, cx=4, cy=4},
@@ -166,6 +166,13 @@ _sfx = {
 function s(name, x, y, flip_x, flip_y)
   local sd = _s[name]
   return sd.n, x-sd.cx, y-sd.cy, sd.w, sd.h, flip_x, flip_y
+end
+
+-- gathers spr parameters
+function sb(name, x, y, flip_x, flip_y)
+  local sd = _s[name]
+  local bounce = sd.bouncy and (t % 10 < 5) and 1 or 0
+  return sd.n, x-sd.cx, y-sd.cy+bounce, sd.w, sd.h, flip_x, flip_y
 end
 
 -- entity reaction: delete
@@ -234,6 +241,15 @@ function erf_consume_carry_only(type)
     }
     
     log(type .. type, entity.x, entity.y)
+  end
+end
+
+-- entity post draw factory: speech icon
+function epdf_speech_text(text)
+  return function(entity, entities)
+    local sprite = _s[entity.type]
+    local bounce = sprite.bouncy and (t % 10 < 5) and 1 or 0
+    print(text, entity.x-sprite.cx/2, entity.y-sprite.cy/2+bounce, 0)
   end
 end
 
@@ -438,7 +454,7 @@ end
 function draw_entities(entities)
   for i=1,#entities do
     local e = entities[i]
-    spr(s(e.type, e.x, e.y))
+    spr(sb(e.type, e.x, e.y))
 
     local post_draws = e.post_draws
     if post_draws ~= nil then
@@ -449,7 +465,6 @@ function draw_entities(entities)
     end
   end
 end
-
 
 -------------------------------
 -- utilities
@@ -515,17 +530,6 @@ function _update_overworld()
   apply_map_updates(overworld_updates)
 
   update_camera()
-  if t % 10 < 5 then
-    _s.food.cy = 5
-    _s.food_blue.cy = 5
-    _s.food_pink.cy = 5
-    _s.food_green.cy = 5
-  else
-    _s.food.cy = 4
-    _s.food_blue.cy = 4
-    _s.food_pink.cy = 4
-    _s.food_green.cy = 4
-  end
 
   log("stats","mem",stat(0),"cpu",stat(1))
 end
@@ -571,6 +575,7 @@ function _draw_overworld()
 end
 
 function go_to_overworld()
+  music(0)
   _update = _update_overworld
   _draw = _draw_overworld
   cam_x = 0
@@ -678,6 +683,7 @@ function _draw_hive()
 end
 
 function go_to_hive()
+  music(4)
   _update = _update_hive
   _draw = _draw_hive
   p.y = 128 - 8 - p.r - p.r
@@ -758,8 +764,8 @@ function _init()
     
     {type="honeycomb", x=96,   y=96,    reactions={erf_consume_carry_only("food_blue")}},
     {type="bee_blue",  x=96,   y=96-20, petal_r=5,updates={eu_bee_jank}},
-    {type="speech",    x=96-4, y=96-20-12,},
-    {type="food_blue", x=96-4, y=96-20-12,},
+    {type="speech",    x=96-4, y=96-20-12,post_draws={epdf_speech_text("hi")}},
+    -- {type="food_blue", x=96-4, y=96-20-12,},
 
     {type="honeycomb", x=64,   y=48,    reactions={erf_consume_carry_only("food_green")}},
     {type="bee_green", x=64,   y=48-20, petal_r=5,updates={eu_bee_jank}},
