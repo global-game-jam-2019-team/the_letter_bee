@@ -207,9 +207,11 @@ _s = {
   spider =     {n= 22, w=1, h=1, cx=4, cy=4, r=4},
   hornet =     {n= 21, w=1, h=1, cx=4, cy=4, r=4},
 
-  heart =      {n= 86, w=1, h=1, cx=4, cy=4, r=4, bouncy=true},
+  heart     =  {n= 86, w=1, h=1, cx=4, cy=4, r=4, bouncy=true},
 
   honeycomb =  {n= 35, w=2, h=2, cx=8, cy=8, r=8},
+
+  logo      =  {n=96, w=4, h=2, cx=16, cy=8}
   -- todo: tree.
 }
 
@@ -890,7 +892,10 @@ function _draw_title()
   spr(s(p.sprite, p.x, p.y, not p.point_right))
 
   -- title text
-  print("bee buds", 50, 20, 0)
+  --print("bee buds", 50, 20, 0)
+  -- spr(_s.logo.n, 30, 30, 4, 2)
+  --spr(n, x, y, [w, h], [flip_x], [flip_y])
+  sspr(0, 48, 32, 16, 10, 10, 72, 32)
   print ("press x to begin", 32, 128-30)
 end
 
