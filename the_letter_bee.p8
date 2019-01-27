@@ -281,6 +281,16 @@ function erf_consume_carry_only(type)
   end
 end
 
+function epdf_lake(w,h, col)
+  col = col and col or 12
+  -- TODO: fillp mask
+  return function(entity, entities)
+    circfill(entity.x, entity.y, h/2, col)
+    circfill(entity.x+w, entity.y, h/2, col)
+    rectfill(entity.x, entity.y-h/2, entity.x+w, entity.y+h/2, col)
+  end
+end
+
 -- entity post draw factory: speech icon
 function epdf_speech_text(text)
   return function(entity, entities)
@@ -947,6 +957,8 @@ function _init()
     [1] = {
       default_entities = {
         {type="hive", x=64, y=52,reactions={go_to_hive}},
+        {type="exit", x=32, y=112,post_draws={epdf_lake(16,16,12)}},
+        {type="exit", x=32+16, y=112+12,post_draws={epdf_lake(16,16,12)}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
         log("update 1", distance_from_home, screen_offset_x)
