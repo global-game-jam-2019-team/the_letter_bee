@@ -1159,12 +1159,11 @@ function _init()
         {type="food_blue", x=32,y=64,reactions={er_carry}},
       },
       reactions={er_spawn_on_hit, reset_goals}},
-    {type="honeycomb", x=96,   y=64,    reactions={erf_consume_carry_only("food_blue")}},
-    {type="bee_blue",  x=96,   y=64-20,
+    {type="honeycomb", x=96,   y=70,    reactions={erf_consume_carry_only("food_blue")}},
+    {type="bee_blue",  x=96,   y=70-20,
       updates={eu_bee_jank}},
-    {type="speech",    x=96-4, y=64-20-12,
+    {type="speech",    x=96-4, y=70-20-12,
       post_draws={epdf_speech_goal_indicator("food_blue")}},
-    -- {type="food_blue", x=96-4, y=96-20-12,},
   }
 
   hive_entities = {
