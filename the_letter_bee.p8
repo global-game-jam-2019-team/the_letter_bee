@@ -23,6 +23,7 @@ local bee_jank_skip_rate = 3
 local bee_jank_factor_y = 1.25
 local bee_jank_factor_x = .5
 local normal_gravity = 4
+local normal_flee_speed = 1
 
 -- the y position of the floor
 local floor_y = 128 - 32
@@ -714,6 +715,20 @@ function eu_fall(entity, entities)
   if entity.y > floor_y then entity.y = floor_y end
 end
 
+function eu_fall_n_run_off(entity, entities)
+  entity.y = entity.y + normal_gravity
+  if entity.y <= floor_y then return end
+  entity.y = floor_y
+  add(entity.updates, eu_run_off)
+end
+
+function eu_run_off(entity, entities)
+  entity.x = entity.x - normal_flee_speed
+  if entity.x < p.x - 128 then
+    er_delete(entity, entities)
+  end
+end
+
 -- entity update: fall (entirely offscreen)
 function eu_fall_off(entity, entities)
   entity.y = entity.y + normal_gravity
@@ -776,12 +791,12 @@ function _init()
       default_entities = {
       },
       extra_entities = {
-        {type="spider", x=32,y=-4,
-          updates={eu_fall_off},reactions={er_drop, er_hurt, erf_sound(_sfx.spider)}},
+        {type="spider", x=16,y=-4,
+          updates={eu_fall_n_run_off},reactions={er_drop, er_hurt, erf_sound(_sfx.spider)}},
         {type="spider", x=64,y=-8,
-          updates={eu_fall_off},reactions={er_drop, er_hurt, erf_sound(_sfx.spider)}},
-        {type="spider", x=96,y=-12,
-          updates={eu_fall_off},reactions={er_drop, er_hurt, erf_sound(_sfx.spider)}},
+          updates={eu_fall_n_run_off},reactions={er_drop, er_hurt, erf_sound(_sfx.spider)}},
+        {type="spider", x=112,y=-12,
+          updates={eu_fall_n_run_off},reactions={er_drop, er_hurt, erf_sound(_sfx.spider)}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
         local local_px = p.x - screen_offset_x
