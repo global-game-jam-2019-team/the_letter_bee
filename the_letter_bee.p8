@@ -274,7 +274,7 @@ function apply_hive_walls(entities)
   if p.x < hive_wall_thickness then p.x = hive_wall_thickness end
 end
 
-function control()
+function control(entities)
   -- left
   if b(0).isdown then
     p.x = p.x - bee_speed
@@ -289,6 +289,8 @@ function control()
   if b(2).isdown then p.y = p.y - bee_speed end
   -- down
   if b(3).isdown then p.y = p.y + bee_speed end
+
+  if b(4).isdown then er_drop(null, entities) end
 end
 
 -- determines which entities the bee is touching
@@ -461,7 +463,7 @@ function _update_overworld()
   t = (t + 1) % 32767
   update_buttons()
   update_bee()
-  control()
+  control(overworld_entities)
   apply_floors(overworld_entities)
   apply_entity_updates(overworld_entities)
   check_overlap(overworld_entities)
@@ -573,10 +575,10 @@ function _update_hive()
   t = (t + 1) % 32767
   update_buttons()
   update_bee()
-  control()
+  control(hive_entities)
 
   apply_hive_walls(hive_entities)
-  apply_entity_updates(overworld_entities)
+  apply_entity_updates(hive_entities)
   check_overlap(hive_entities)
   apply_overlap(hive_entities)
 
