@@ -887,12 +887,9 @@ function _draw_title()
   print ("press x to begin", 32, 128-30)
 end
 
-go_to_overworld()
-
 -- go_to_hive()
--- p.y = 64
-
--- go_to_title()
+-- go_to_overworld()
+go_to_title()
 
 -- the happy bee dance
 eu_bee_jank = euf_rose_xy{n=1,d=6,r=5,f_cycle=15}
