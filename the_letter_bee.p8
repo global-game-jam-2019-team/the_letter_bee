@@ -27,6 +27,8 @@ local bee_jank_factor_x = .5
 local normal_gravity = 4
 local normal_flee_speed = 4
 local is_day = true
+local is_overcast = false
+local is_rainy = true
 
 -- the y position of the floor
 local floor_y = 128 - 32
@@ -644,8 +646,7 @@ function apply_map_updates(updates)
   end
 end
 
-function parallax_clouds(seed, count, speed, scale, y)
-  local y_spread = 24
+function parallax_clouds(seed, count, speed, scale, y, y_spread)
   local reseed = rnd(10000)
   srand(seed)
   local right_limit = get_screen_offset(#map_list_right)
@@ -661,18 +662,49 @@ function parallax_clouds(seed, count, speed, scale, y)
   srand(reseed)
 end
 
+function draw_rain(seed, count, y)
+  local len = 5
+  local angle = 0.666
+  local y_spread = 128 + len + y + len
+  local reseed = rnd(10000)
+  srand(seed)
+  local right_limit = get_screen_offset(#map_list_right+ 1)
+  local left_limit = abs(get_screen_offset(-#map_list_left))
+  right_limit = right_limit + y_spread * abs(cos(angle))
+  for i=1,count do
+    local sx = rnd(right_limit + left_limit) - left_limit
+    local initial_progress = rnd(y_spread)
+
+    local progress = (initial_progress + (t * 2)) % (128 + len + y + len)
+    sx = sx + progress * cos(angle)
+    local sy = y + progress * sin(angle)
+
+    sx2 = sx + len * cos(angle)
+    sy2 = sy + len * sin(angle)
+    line(sx,sy, sx2,sy2, 13)
+  end
+  srand(reseed)
+end
+
 function _draw_overworld()
   cls"1"
-  rectfill(cam_x-64,floor_y, cam_x+128+64,128, 3)
+
   camera(cam_x,0)
   local sky_sprite = is_day and "sun" or "moon"
   spr(sb(sky_sprite, cam_x + 112, 12))
 
+  parallax_clouds(100, 50, 0.25, 1, 16, 24)
+  parallax_clouds(105, 50, 0.125, 1, 24, 24)
+  if is_overcast then
+    parallax_clouds(102, 2000, 0.0675, 1, 8, 32)
+  end
 
-  parallax_clouds(100, 50, 0.25, 1, 16)
-  parallax_clouds(105, 50, 0.125, 1, 24)
+  if is_rainy then
+    draw_rain(102, 1000, -5)
+  end
 
   local screen = get_screen(cam_x)
+  rectfill(cam_x-64,floor_y, cam_x+128+64,128, 3)
 
   -- home
   draw_screen(home_map, 0)
