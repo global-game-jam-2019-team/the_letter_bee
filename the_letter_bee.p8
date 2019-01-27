@@ -142,7 +142,7 @@ _s = {
   cloud  =     {n=  5, w=2, h=1, cx=8, cy=8},
   cloud2 =     {n= 48, w=2, h=1, cx=8, cy=8},
   floor  =     {n=  7, w=2, h=1, cx=4, cy=4},
-  speech =     {n=  8, w=2, h=2, cx=12,cy=16},
+  speech =     {n=  8, w=2, h=2, cx=8, cy=8},
   sun    =     {n= 14, w=2, h=2, cx=8, cy=8},
   smoke_l=     {n= 50, w=1, h=1, cx=4, cy=4},
   smoke_s=     {n= 23, w=1, h=1, cx=4, cy=4},
@@ -639,6 +639,7 @@ end
 
 -- go_to_overworld()
 go_to_hive()
+p.y = 64
 
 function eu_bee_jank(entity, entities)
   -- https://en.wikipedia.org/wiki/rose_(mathematics)
@@ -689,8 +690,10 @@ function _init()
 
   hive_entities = {
     {type="exit",      x=64, y=128,reactions={go_to_overworld}},
-    {type="honeycomb", x=96,y=96,reactions={er_consume_carry}},
-    {type="bee_blue",  x=96,y=72,petal_r=5,updates={eu_bee_jank}},
+    {type="honeycomb", x=96, y=96,reactions={er_consume_carry}},
+    {type="bee_blue",  x=96, y=76,petal_r=5,updates={eu_bee_jank}},
+    {type="speech",    x=96, y=76-12,},
+    {type="food_blue", x=96, y=76-12,},
   }
   for entity in all(hive_entities) do
     entity.ox = entity.x
@@ -708,9 +711,9 @@ function _init()
     },
     [2] = {
       default_entities = {
-        {type="food", x=79,y=87,reactions={er_carry}},
-        {type="food", x=55,y=87,reactions={er_carry}},
-        {type="food", x=95,y=87,reactions={er_carry}},
+        {type="food_green", x=79,y=87,reactions={er_carry}},
+        {type="food_blue", x=55,y=87,reactions={er_carry}},
+        {type="food_pink", x=95,y=87,reactions={er_carry}},
         {type="wasp",x=64,y=16,petal_r=12,
           updates={eu_wasp_cycle},reactions={er_drop, er_hurt}},
       },
