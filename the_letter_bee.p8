@@ -687,7 +687,7 @@ function parallax_hills(seed, count, speed, scale, y_spread)
   for i=1,count do
     local sx = rnd(right_limit + left_limit) - left_limit
     -- local sy = y + rnd(y_spread)
-    sx = sx + speed * -cam_x
+    sx = sx + (speed * -cam_x) - 1
 
     local hill_count = flr(rnd(3)) + 1
     local hill_y_pos = 92
