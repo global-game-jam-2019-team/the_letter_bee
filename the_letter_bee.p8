@@ -17,7 +17,7 @@ local p =              -- player
    r = 4,
    carry_sprite=nil}
 local bee_gravity = 0
-local bee_speed = 1.75
+local bee_speed = 3 -- 1.75
 local bee_jank_skip_rate = 3
 local bee_jank_factor_y = 1.25
 local bee_jank_factor_x = .5
@@ -128,6 +128,7 @@ _s = {
   bee_green  = {n=  2, w=1, h=1, cx=4, cy=4, r=4},
   bee_blue   = {n= 17, w=1, h=1, cx=4, cy=4, r=4},
   bee_pink   = {n= 18, w=1, h=1, cx=4, cy=4, r=4},
+
   food       = {n= 16, w=1, h=1, cx=4, cy=4, r=4},
   food_green = {n= 32, w=1, h=1, cx=4, cy=4, r=4},
   food_blue  = {n= 33, w=1, h=1, cx=4, cy=4, r=4},
@@ -138,7 +139,11 @@ _s = {
   cloud2 =     {n= 48, w=2, h=1, cx=8, cy=8},
   floor  =     {n=  7, w=2, h=1, cx=4, cy=4},
   speech =     {n=  8, w=2, h=2, cx=12,cy=16},
-  speech =     {n=  7, w=2, h=1, cx=12,cy=16},
+  sun    =     {n= 14, w=2, h=2, cx=8, cy=8},
+  smoke_l=     {n= 50, w=1, h=1, cx=4, cy=4},
+  smoke_s=     {n= 23, w=1, h=1, cx=4, cy=4},
+  spider =     {n= 22, w=1, h=1, cx=4, cy=4, r=4},
+  wasp   =     {n= 21, w=1, h=1, cx=4, cy=4, r=4},
 
   honeycomb =  {n= 35, w=2, h=2, cx=8, cy=8, r=8},
   -- todo: tree.
@@ -165,7 +170,13 @@ end
 -- entity reaction: drop
 function er_drop(entity, entities)
   if p.carry_sprite == nil then return end
-  add(entities, {type=p.carry_sprite,x=p.x,y=p.y})
+  add(
+    entities,
+    {
+      type=p.carry_sprite,
+      x=p.x,
+      y=p.y + p.r + _s[p.carry_sprite].r + 2,
+      updates={eu_fall},reactions={er_carry}})
   p.carry_sprite = nil
 end
 
@@ -271,6 +282,7 @@ function check_overlap(entities)
     local e = entities[i]
     e.is_touched = false
     local sprite = _s[e.type]
+    -- log("checking", e.type,e.x, )
     local e_r = sprite.r
     if e_r ~= nil then
       local dx = e.x - p.x
@@ -587,6 +599,11 @@ function eu_fall(entity, entities)
   if entity.y > floor_y then entity.y = floor_y end
 end
 
+function eu_fall_off(entity, entities)
+  entity.y = entity.y + normal_gravity
+  if entity.y < -16 then er_delete(entity, entities) end
+end
+
 -- prep entities
 function _init()
   music(0)
@@ -624,7 +641,7 @@ function _init()
         {type="food", x=64,y=12,reactions={}},
       },
       extra_entities = {
-        {type="food_pink", x=10,y=64,updates={eu_fall},reactions={er_carry}},
+        {type="spider", x=64,y=12,updates={eu_fall_off},reactions={er_drop}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
         local local_px = p.x - screen_offset_x
