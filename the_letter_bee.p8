@@ -15,6 +15,7 @@ local p =              -- player
    cycling = false, cycle_timer = 0,
    col = 8, mode = 1, point_right = true,
    r = 4,
+   sprite="bee",
    carry_sprite=nil}
 local bee_gravity = 0
 local bee_speed = 3 -- 1.75
@@ -149,6 +150,10 @@ _s = {
   -- todo: tree.
 }
 
+_sfx = {
+  hurt = 8
+}
+
 -- gathers spr parameters
 function s(name, x, y, flip_x, flip_y)
   local sd = _s[name]
@@ -165,6 +170,12 @@ function er_carry(entity, entities)
   if p.carry_sprite ~= nil then return end
   p.carry_sprite = entity.type
   del(entities, entity)
+end
+
+-- entity reaction: hurt
+function er_hurt(entity, entities)
+  p.sprite = "bee_pink"
+  sfx(_sfx.hurt)
 end
 
 -- entity reaction: drop
@@ -236,6 +247,7 @@ function _dump(name, v, depth)
 end
 
 function update_bee()
+  p.sprite = "bee"
   p.y = p.y + bee_gravity
   if t % bee_jank_skip_rate ~= 0 then
     local angle = rnd(1)
@@ -277,7 +289,7 @@ end
 
 -- determines which entities the bee is touching
 function check_overlap(entities)
-  local bee_r = _s["bee"].r
+  local bee_r = _s[p.sprite].r
   for i=#entities,1,-1 do
     local e = entities[i]
     e.is_touched = false
@@ -304,11 +316,11 @@ end
 
 -- reacts to the bee touching entities
 function apply_overlap(entities)
-  _s.bee.n = 1
+  -- _s.bee.n = 1
   for i=#entities,1,-1 do
     local e = entities[i]
     if e.is_touched then
-      _s.bee.n = 2
+      -- _s.bee.n = 2
       local reactions = e.reactions
       if reactions ~= nil then
         log("#reactions", #reactions)
@@ -490,12 +502,12 @@ function _draw_overworld()
 
   -- bee carry
   if p.carry_sprite ~= nil then
-    local offset_y = _s.bee.cy + _s[p.carry_sprite].cy
+    local offset_y = _s[p.sprite].cy + _s[p.carry_sprite].cy
     spr(s(p.carry_sprite, p.x, p.y + offset_y))
   end
 
   -- bee
-  spr(s("bee", p.x, p.y, not p.point_right))
+  spr(s(p.sprite, p.x, p.y, not p.point_right))
 end
 
 function go_to_overworld()
@@ -579,11 +591,11 @@ function _draw_hive()
 
   -- bee carry
   if p.carry_sprite ~= nil then
-    local offset_y = _s.bee.cy + _s[p.carry_sprite].cy
+    local offset_y = _s[p.sprite].cy + _s[p.carry_sprite].cy
     spr(s(p.carry_sprite, p.x, p.y + offset_y))
   end
   -- bee
-  spr(s("bee", p.x, p.y, not p.point_right))
+  spr(s(p.sprite, p.x, p.y, not p.point_right))
 end
 
 function go_to_hive()
@@ -599,6 +611,17 @@ function eu_fall(entity, entities)
   if entity.y > floor_y then entity.y = floor_y end
 end
 
+function eu_wasp_cycle(entity, entities)
+  -- https://en.wikipedia.org/wiki/rose_(mathematics)
+  local k = 4 / 6 -- petal count; doubled if even?
+  local cycle_over_frames = flr(rnd(45) + 45)
+  local theta = (t % cycle_over_frames) / cycle_over_frames
+  local offset_x = entity.petal_r * cos(k * theta) * cos(theta)
+  local offset_y = entity.petal_r * cos(k * theta) * sin(theta)
+  entity.x = entity.ox + offset_x
+  entity.y = entity.oy + offset_y
+end
+
 function eu_fall_off(entity, entities)
   entity.y = entity.y + normal_gravity
   if entity.y < -16 then er_delete(entity, entities) end
@@ -606,7 +629,7 @@ end
 
 -- prep entities
 function _init()
-  music(0)
+  -- music(0)
   overworld_updates = {}
   overworld_entities = {
     {type="food", x=136,y=floor_y,reactions={er_carry}}
@@ -631,6 +654,8 @@ function _init()
         {type="food", x=78,y=86,reactions={er_carry}},
         {type="food", x=54,y=86,reactions={er_carry}},
         {type="food", x=94,y=86,reactions={er_carry}},
+        {type="wasp",x=64,y=16,petal_r=12,
+          updates={eu_wasp_cycle},reactions={er_drop, er_hurt}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
         log("update 2", distance_from_home, screen_offset_x)
@@ -659,6 +684,8 @@ end
 function inject_entity(entity, screen_offset_x)
   local new_entity = clone(entity)
   new_entity.x = new_entity.x + screen_offset_x
+  new_entity.ox = new_entity.x
+  new_entity.oy = new_entity.y
   add(overworld_entities, new_entity)
 end
 
@@ -831,7 +858,7 @@ __sfx__
 000e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151001670023200247000000000000000000000000000232102121023210212101b210192101b21019210
 0003000023e2423e2022e201fe2021e2020e201fe201ee201ce201ae2017e2014e2010e2010e10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000400001cf301ff3025f302bf302ef3034f3009100061000710009100071000a100091000810009100091000810008100071000a10008100081000a10008100081000710009100071000a100081000910009100
-0004000031120291201e12017120141200e12009120041202bb3022b301bb3011b300ab3004b3001b202a310263101c3100f3100831002b100bd0005d0001d0001d0001d0001d000000000000000000000000000
+0002000031120291201e12017120141200e12009120041202bb0022b001bb0011b000ab0004b0001b002a300263001c3000f3000830002b000bd0005d0001d0001d0001d0001d000000000000000000000000000
 010e00003d6000000400000000003d6000000000000000003d6150000400000000003d600000003d600000003d6000000400000000003d6000000000000000003d615000043d615000003d615000003d60000000
 010e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151002321023200232100000000000000000000000000222102120022210212001b200192002021019200
 __music__
