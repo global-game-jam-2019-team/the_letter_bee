@@ -16,7 +16,7 @@ local p =              -- player
    col = 8, mode = 1, point_right = true,
    r = 4,
    sprite="bee",
-   carry_sprite="food_blue"}
+   carry_sprite=nil}
 local bee_gravity = 0
 local bee_speed = 3 -- 1.75
 local bee_jank_skip_rate = 3
@@ -94,6 +94,39 @@ function clone(input)
     t[key] = value
   end
   return t
+end
+
+
+-- generate a rose function for entities
+function euf_rose_xy(o)
+  -- https://en.wikipedia.org/wiki/rose_(mathematics)
+  o = {
+    n = o.n and o.n or 1, -- the n value from wikipedia
+    d = o.d and o.d or 1, -- the d value from wikipedia
+    r = o.r and o.r or 16, -- the default radius
+    f_cycle = o.f_cycle, -- the cycle time. 30fps
+    f_offset = o.f_offset and o.f_offset or 0, -- the cycle offset
+    x_r = o.x_r and o.x_r or o.r or 16, -- the x radius
+    y_r = o.y_r and o.y_r or o.r or 16, -- the y radius
+    rotate = o.rotate and o.rotate or 0, -- the tilt
+    flip_x = o.flip_x and sgn(o.flip_x) or 1, -- flips x
+    flip_y = o.flip_y and sgn(o.flip_y) or 1, -- flips y
+  }
+
+  local k = o.n / o.d
+  log("rose1", o.n, o.d, o.r, o.f_cycle)
+  log("rose2", o.f_offset, o.x_r, o.y_r, o.rotate)
+  return function (entity, entities)
+    local theta =
+      ((t + o.f_offset) % (o.f_cycle * o.d)) / o.f_cycle
+    -- theta = theta + o.rotate
+    local offset_x = o.x_r * cos(k * theta) * cos(theta)
+    local offset_y = o.y_r * cos(k * theta) * sin(theta)
+    local xy_len = len(offset_x, offset_y)
+    local angle = atan2(offset_x, offset_y) + o.rotate
+    entity.x = entity.ox + xy_len * cos(angle) * o.flip_x
+    entity.y = entity.oy + xy_len * sin(angle) * o.flip_y
+  end
 end
 
 
@@ -237,6 +270,7 @@ function erf_consume_carry_only(type)
 
     entity.post_draws = {
       function(entity, entities)
+        if not goals[type] then return end
         log(type, entity.x, entity.y)
         local n, cx, cy, w, h, flip_x, flip_y = s(type, entity.x, entity.y)
         spr(n, cx, cy+1, w, h/2, flip_x, flip_y)
@@ -377,6 +411,7 @@ function check_overlap(entities)
   local bee_r = _s[p.sprite].r
   for i=#entities,1,-1 do
     local e = entities[i]
+    e.was_touched = e.is_touched
     e.is_touched = false
     local sprite = _s[e.type]
     local e_r = sprite.r
@@ -394,6 +429,7 @@ function check_overlap(entities)
           -- log("colliding", e.x, e.y, p.x, p.y)
         end
       end
+      e.first_touch = e.is_touched and not e.was_touched
     end
   end
 end
@@ -432,7 +468,7 @@ end
 function update_camera()
   cam_x_right_limit = p.x - cam_x_screen_limit
   cam_x_left_limit = p.x - (128 - cam_x_screen_limit)
-  -- log("bee", cam_x_right_limit, cam_x_left_limit, p.x)
+
   if cam_x > cam_x_right_limit then cam_x = cam_x_right_limit end
   if cam_x < cam_x_left_limit then cam_x = cam_x_left_limit end
 end
@@ -722,8 +758,21 @@ function go_to_title()
   _draw = _draw_title
 end
 
-function _update_title()
+cardioid_loop = euf_rose_xy{n=1,d=3,r=46,r_x=46,f_cycle=-30*5,rotate=-0.25}
 
+function _update_title()
+  t = (t + 1) % 32767
+  update_buttons()
+  
+  update_bee()
+  p.ox = 64
+  p.oy = 64
+  cardioid_loop(p, nil)
+
+  apply_hive_walls(title_entities)
+  apply_entity_updates(title_entities)
+  check_overlap(title_entities)
+  apply_overlap(title_entities)
 end
 
 function _draw_title()
@@ -736,9 +785,22 @@ function _draw_title()
 
   map(0,64-16, 0,0, 16,16)
   map(16,64-16, 0,0, 16,16)
+  
+
+  -- entities
+  draw_entities(title_entities)
+
+  -- bee carry
+  if p.carry_sprite ~= nil then
+    local offset_y = _s[p.sprite].cy + _s[p.carry_sprite].cy
+    spr(s(p.carry_sprite, p.x, p.y + offset_y))
+  end
+  -- bee
+  spr(s(p.sprite, p.x, p.y, not p.point_right))
+
+  -- title text
   print("BEE BUDS", 50, 20, 0)
   print ("Press X to begin", 32, 128-30)
-
 end
 
 -- go_to_overworld()
@@ -747,36 +809,6 @@ end
 -- p.y = 64
 
 go_to_title()
-
--- generate a rose function for entities
-function euf_rose_xy(o)
-  -- https://en.wikipedia.org/wiki/rose_(mathematics)
-  o = {
-    n = o.n and o.n or 1, -- the n value from wikipedia
-    d = o.d and o.d or 1, -- the d value from wikipedia
-    r = o.r and o.r or 16, -- the default radius
-    f_cycle = o.f_cycle, -- the cycle time. 30fps
-    f_offset = o.f_offset and o.f_offset or 0, -- the cycle offset
-    x_r = o.x_r and o.x_r or o.r or 16, -- the x radius
-    y_r = o.y_r and o.y_r or o.r or 16, -- the y radius
-    rotate = o.rotate and o.rotate or 0 -- the tilt
-  }
-
-  local k = o.n / o.d
-  log("rose1", o.n, o.d, o.r, o.f_cycle)
-  log("rose2", o.f_offset, o.x_r, o.y_r, o.rotate)
-  return function (entity, entities)
-    local theta =
-      ((t + o.f_offset) % (o.f_cycle * o.d)) / o.f_cycle
-    -- theta = theta + o.rotate
-    local offset_x = o.x_r * cos(k * theta) * cos(theta)
-    local offset_y = o.y_r * cos(k * theta) * sin(theta)
-    local xy_len = len(offset_x, offset_y)
-    local angle = atan2(offset_x, offset_y) + o.rotate
-    entity.x = entity.ox + xy_len * cos(angle)
-    entity.y = entity.oy + xy_len * sin(angle)
-  end
-end
 
 -- the happy bee dance
 eu_bee_jank = euf_rose_xy{n=1,d=6,r=5,f_cycle=15}
@@ -826,12 +858,45 @@ function eu_fall_off(entity, entities)
   if entity.y < -16 then er_delete(entity, entities) end
 end
 
+function reset_goals()
+  for k,v in pairs(goals) do
+    goals[k] = false
+  end
+end
+
+-- initializes and starts the game
+function game_start(entity, entities)
+  p.carry_sprite = nil
+  go_to_hive()
+end
+
+function er_spawn_on_hit(entity, entities)
+  if not entity.first_touch then return end
+  for v in all(entity.spawn_on_hit) do
+    add(entities, v)
+  end
+end
+
 -- prep entities
 function _init()
   -- music(0)
   overworld_updates = {}
   overworld_entities = {
     {type="food", x=136,y=floor_y,reactions={er_carry}}
+  }
+
+  title_entities = {
+    {type="exit",      x=64,   y=112,
+      spawn_on_hit={
+        {type="food_blue", x=32,y=64,reactions={er_carry}},
+      },
+      reactions={er_spawn_on_hit, reset_goals}},
+    {type="honeycomb", x=96,   y=64,    reactions={erf_consume_carry_only("food_blue")}},
+    {type="bee_blue",  x=96,   y=64-20,
+      updates={eu_bee_jank}},
+    {type="speech",    x=96-4, y=64-20-12,
+      post_draws={epdf_speech_goal_indicator("food_blue")}},
+    -- {type="food_blue", x=96-4, y=96-20-12,},
   }
 
   hive_entities = {
@@ -859,6 +924,10 @@ function _init()
     -- {type="food_pink", x=32-4, y=96-20-12,},
   }
   for entity in all(hive_entities) do
+    entity.ox = entity.x
+    entity.oy = entity.y
+  end
+  for entity in all(title_entities) do
     entity.ox = entity.x
     entity.oy = entity.y
   end
