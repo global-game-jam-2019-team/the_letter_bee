@@ -16,7 +16,7 @@ local p =              -- player
    col = 8, mode = 1, point_right = true,
    r = 4,
    sprite="bee",
-   carry_sprite=nil}
+   carry_sprite="food_blue"}
 local bee_gravity = 0
 local bee_speed = 3 -- 1.75
 local bee_jank_skip_rate = 3
@@ -202,6 +202,24 @@ end
 function er_consume_carry(entity, entities)
   if p.carry_sprite == nil then return end
   p.carry_sprite = nil
+end
+
+-- entity reaction factory: consume carry only one type
+function erf_consume_carry_only(type)
+  return function(entity, entities)
+    if p.carry_sprite == nil then return end
+    if p.carry_sprite ~= type then return end
+    p.carry_sprite = nil
+    entity.post_draws = {
+      function(entity, entities)
+        log(type, entity.x, entity.y)
+        local n, cx, cy, w, h, flip_x, flip_y = s(type, entity.x, entity.y)
+        spr(n, cx, cy+1, w, h/2, flip_x, flip_y)
+      end
+    }
+    
+    log(type .. type, entity.x, entity.y)
+  end
 end
 
 function update_buttons()
@@ -406,6 +424,14 @@ function draw_entities(entities)
   for i=1,#entities do
     local e = entities[i]
     spr(s(e.type, e.x, e.y))
+
+    local post_draws = e.post_draws
+    if post_draws ~= nil then
+      -- log("#post_draws", #post_draws)
+      for post_draw in all(post_draws) do
+        post_draw(e, entities)
+      end
+    end
   end
 end
 
@@ -691,17 +717,17 @@ function _init()
   hive_entities = {
     {type="exit",      x=64,   y=128,   reactions={go_to_overworld}},
     
-    {type="honeycomb", x=96,   y=96,    reactions={er_consume_carry}},
+    {type="honeycomb", x=96,   y=96,    reactions={erf_consume_carry_only("food_blue")}},
     {type="bee_blue",  x=96,   y=96-20, petal_r=5,updates={eu_bee_jank}},
     {type="speech",    x=96-4, y=96-20-12,},
     {type="food_blue", x=96-4, y=96-20-12,},
 
-    {type="honeycomb", x=64,   y=48,    reactions={er_consume_carry}},
+    {type="honeycomb", x=64,   y=48,    reactions={erf_consume_carry_only("food_green")}},
     {type="bee_green", x=64,   y=48-20, petal_r=5,updates={eu_bee_jank}},
     {type="speech",    x=64-4, y=48-20-12,},
     {type="food_green",x=64-4, y=48-20-12,},
 
-    {type="honeycomb", x=32,   y=96,    reactions={er_consume_carry}},
+    {type="honeycomb", x=32,   y=96,    reactions={erf_consume_carry_only("food_pink")}},
     {type="bee_pink",  x=32,   y=96-20, petal_r=5,updates={eu_bee_jank}},
     {type="speech",    x=32-4, y=96-20-12,},
     {type="food_pink", x=32-4, y=96-20-12,},
