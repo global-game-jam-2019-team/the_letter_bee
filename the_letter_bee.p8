@@ -23,7 +23,7 @@ local bee_jank_skip_rate = 3
 local bee_jank_factor_y = 1.25
 local bee_jank_factor_x = .5
 local normal_gravity = 4
-local normal_flee_speed = 1
+local normal_flee_speed = 4
 
 -- the y position of the floor
 local floor_y = 128 - 32
@@ -517,8 +517,14 @@ function _update_overworld()
   update_camera()
   if t % 10 < 5 then
     _s.food.cy = 5
+    _s.food_blue.cy = 5
+    _s.food_pink.cy = 5
+    _s.food_green.cy = 5
   else
     _s.food.cy = 4
+    _s.food_blue.cy = 4
+    _s.food_pink.cy = 4
+    _s.food_green.cy = 4
   end
 
   log("stats","mem",stat(0),"cpu",stat(1))
@@ -702,7 +708,7 @@ function eu_hornet_cycle(entity, entities)
   local d = 6;
   local k = n / d -- petal count; doubled if even? see article
   local cycle_over_frames = 20 -- flr(rnd(45) + 45)
-  local theta = (t % (cycle_over_frames * d)) / cycle_over_frames
+  local theta = ((t + entity.petal_r_offset) % (cycle_over_frames * d)) / cycle_over_frames
   local offset_x = entity.petal_r * cos(k * theta) * cos(theta)
   local offset_y = entity.petal_r * cos(k * theta) * sin(theta)
   entity.x = entity.ox + offset_x
@@ -719,12 +725,16 @@ function eu_fall_n_run_off(entity, entities)
   entity.y = entity.y + normal_gravity
   if entity.y <= floor_y then return end
   entity.y = floor_y
+  if entity.has_run_off then return end
+  entity.has_run_off = true
+  entity.run_off_speed = rnd(normal_flee_speed * 2) - normal_flee_speed
+  if entity.run_off_speed < 1 then entity.run_off_speed = sgn(entity.run_off_speed) end
   add(entity.updates, eu_run_off)
 end
 
 function eu_run_off(entity, entities)
-  entity.x = entity.x - normal_flee_speed
-  if entity.x < p.x - 128 then
+  entity.x = entity.x - entity.run_off_speed
+  if abs(entity.x - p.x) > 128 then
     er_delete(entity, entities)
   end
 end
@@ -780,7 +790,11 @@ function _init()
         {type="food_green", x=79,y=87,reactions={er_carry}},
         {type="food_blue", x=55,y=87,reactions={er_carry}},
         {type="food_pink", x=95,y=87,reactions={er_carry}},
-        {type="hornet",x=64,y=16,petal_r=12,
+        {type="hornet",x=64,y=16,petal_r=12,petal_r_offset=flr(rnd(3000)),
+          updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
+        {type="hornet",x=48,y=48,petal_r=32,petal_r_offset=flr(rnd(3000)),
+          updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
+        {type="hornet",x=96,y=30,petal_r=8,petal_r_offset=flr(rnd(3000)),
           updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
