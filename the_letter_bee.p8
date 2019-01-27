@@ -623,9 +623,11 @@ end
 
 function eu_wasp_cycle(entity, entities)
   -- https://en.wikipedia.org/wiki/rose_(mathematics)
-  local k = 4 / 6 -- petal count; doubled if even?
-  local cycle_over_frames = flr(rnd(45) + 45)
-  local theta = (t % cycle_over_frames) / cycle_over_frames
+  local n = 4;
+  local d = 6;
+  local k = n / d -- petal count; doubled if even? see article
+  local cycle_over_frames = 20 -- flr(rnd(45) + 45)
+  local theta = (t % (cycle_over_frames * d)) / cycle_over_frames
   local offset_x = entity.petal_r * cos(k * theta) * cos(theta)
   local offset_y = entity.petal_r * cos(k * theta) * sin(theta)
   entity.x = entity.ox + offset_x
@@ -673,10 +675,9 @@ function _init()
     },
     [3] = {
       default_entities = {
-        {type="food", x=64,y=12,reactions={}},
       },
       extra_entities = {
-        {type="spider", x=64,y=12,updates={eu_fall_off},reactions={er_drop}},
+        {type="spider", x=64,y=-4,updates={eu_fall_off},reactions={er_drop, er_hurt}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
         local local_px = p.x - screen_offset_x
