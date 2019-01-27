@@ -129,6 +129,8 @@ _s = {
   bee_green  = {n=  2, w=1, h=1, cx=4, cy=4, r=4},
   bee_blue   = {n= 17, w=1, h=1, cx=4, cy=4, r=4},
   bee_pink   = {n= 18, w=1, h=1, cx=4, cy=4, r=4},
+  bee_busy   = {n= 41, w=1, h=1, cx=0, cy=0, r=1},
+  bee_busier = {n= 57, w=1, h=1, cx=0, cy=0, r=1},
 
   food       = {n= 16, w=1, h=1, cx=4, cy=4, r=4},
   food_green = {n= 32, w=1, h=1, cx=4, cy=4, r=4},
@@ -591,30 +593,22 @@ function _update_hive()
   log("stats","mem",stat(0),"cpu",stat(1))
 end
 
+function draw_busy_bees(sprite, count, seed, tx, ty)
+  local reseed = rnd(1000)
+  srand(seed)
+  for i=1,count do
+    local x = ((rnd(192) + t*tx) % 192) - 32
+    local y = ((rnd(192) + t*ty) % 192) - 32
+    spr(sprite.n, x,y, sprite.w,sprite.h)
+  end
+  srand(reseed)
+end
+
 function _draw_hive()
   cls"15"
   camera(0,0)
-  pal(2,15)
-  pal(5,15)
-  pal(9,15)
-
-  local reseed = rnd(1000)
-  srand(100)
-  for i=1,30 do
-    local x = ((rnd(192) + t) % 192) - 32
-    local y = ((rnd(192) + t/4) % 192) - 32
-    spr(_s.honeycomb.n, x,y, _s.honeycomb.w,_s.honeycomb.h)
-  end
-  srand(reseed)
-
-  pal(2,2)
-  pal(5,5)
-  pal(9,9)
-  
-  camera(0,0)
-  pal(2,0)
-  pal(5,0)
-  pal(9,0)
+  draw_busy_bees(_s.bee_busy, 30, 100, 1, 0.25)
+  draw_busy_bees(_s.bee_busier, 30, 100, -1, 0.25)
 
   -- map(0,64-16, 0,0, 16,16)
 
