@@ -15,6 +15,7 @@ local p =              -- player
    cycling = false, cycle_timer = 0,
    col = 8, mode = 1, point_right = true,
    r = 4,
+   sprite="bee",
    carry_sprite=nil}
 local bee_gravity = 0
 local bee_speed = 3 -- 1.75
@@ -149,6 +150,10 @@ _s = {
   -- todo: tree.
 }
 
+_sfx = {
+  hurt = 8
+}
+
 -- gathers spr parameters
 function s(name, x, y, flip_x, flip_y)
   local sd = _s[name]
@@ -165,6 +170,16 @@ function er_carry(entity, entities)
   if p.carry_sprite ~= nil then return end
   p.carry_sprite = entity.type
   del(entities, entity)
+end
+
+-- entity reaction: hurt
+function er_hurt(entity, entities)
+  local knockback = 10
+  p.sprite = "bee_pink"
+  sfx(_sfx.hurt)
+  local theta = atan2(p.x-entity.x, p.y-entity.y)
+  p.x = p.x + cos(theta) * knockback
+  p.y = p.y + sin(theta) * knockback
 end
 
 -- entity reaction: drop
@@ -236,6 +251,7 @@ function _dump(name, v, depth)
 end
 
 function update_bee()
+  p.sprite = "bee"
   p.y = p.y + bee_gravity
   if t % bee_jank_skip_rate ~= 0 then
     local angle = rnd(1)
@@ -258,7 +274,7 @@ function apply_hive_walls(entities)
   if p.x < hive_wall_thickness then p.x = hive_wall_thickness end
 end
 
-function control()
+function control(entities)
   -- left
   if b(0).isdown then
     p.x = p.x - bee_speed
@@ -273,16 +289,17 @@ function control()
   if b(2).isdown then p.y = p.y - bee_speed end
   -- down
   if b(3).isdown then p.y = p.y + bee_speed end
+
+  if b(4).isdown then er_drop(null, entities) end
 end
 
 -- determines which entities the bee is touching
 function check_overlap(entities)
-  local bee_r = _s["bee"].r
+  local bee_r = _s[p.sprite].r
   for i=#entities,1,-1 do
     local e = entities[i]
     e.is_touched = false
     local sprite = _s[e.type]
-    -- log("checking", e.type,e.x, )
     local e_r = sprite.r
     if e_r ~= nil then
       local dx = e.x - p.x
@@ -292,10 +309,10 @@ function check_overlap(entities)
         local d2_limit = pow2(bee_r + e_r)
         if d2 < d2_limit then
           e.is_touched = true
-          log("colliding", e.type, bee_r, e_r)
-          log("colliding", dx, dy)
-          log("colliding", d2, d2_limit)
-          log("colliding", e.x, e.y, p.x, p.y)
+          -- log("colliding", e.type, bee_r, e_r)
+          -- log("colliding", dx, dy)
+          -- log("colliding", d2, d2_limit)
+          -- log("colliding", e.x, e.y, p.x, p.y)
         end
       end
     end
@@ -304,14 +321,14 @@ end
 
 -- reacts to the bee touching entities
 function apply_overlap(entities)
-  _s.bee.n = 1
+  -- _s.bee.n = 1
   for i=#entities,1,-1 do
     local e = entities[i]
     if e.is_touched then
-      _s.bee.n = 2
+      -- _s.bee.n = 2
       local reactions = e.reactions
       if reactions ~= nil then
-        log("#reactions", #reactions)
+        -- log("#reactions", #reactions)
         for reaction in all(reactions) do
           reaction(e, entities)
         end
@@ -325,7 +342,7 @@ function apply_entity_updates(entities)
     local e = entities[i]
     local updates = e.updates
     if updates ~= nil then
-      log("#updates", #updates)
+      -- log("#updates", #updates)
       for update in all(updates) do
         update(e, entities)
       end
@@ -336,7 +353,7 @@ end
 function update_camera()
   cam_x_right_limit = p.x - cam_x_screen_limit
   cam_x_left_limit = p.x - (128 - cam_x_screen_limit)
-  log("bee", cam_x_right_limit, cam_x_left_limit, p.x)
+  -- log("bee", cam_x_right_limit, cam_x_left_limit, p.x)
   if cam_x > cam_x_right_limit then cam_x = cam_x_right_limit end
   if cam_x < cam_x_left_limit then cam_x = cam_x_left_limit end
 end
@@ -378,7 +395,7 @@ end
 
 function pick_map_old()
   local i = rnd_index(available_maps)
-  log("map", i, #available_maps)
+  -- log("map", i, #available_maps)
   return available_maps[rnd_index(available_maps)]
 end
 
@@ -445,7 +462,7 @@ function _update_overworld()
   t = (t + 1) % 32767
   update_buttons()
   update_bee()
-  control()
+  control(overworld_entities)
   apply_floors(overworld_entities)
   apply_entity_updates(overworld_entities)
   check_overlap(overworld_entities)
@@ -454,6 +471,11 @@ function _update_overworld()
   apply_map_updates(overworld_updates)
 
   update_camera()
+  if t % 10 < 5 then
+    _s.food.cy = 5
+  else
+    _s.food.cy = 4
+  end
 
   log("stats","mem",stat(0),"cpu",stat(1))
 end
@@ -490,12 +512,12 @@ function _draw_overworld()
 
   -- bee carry
   if p.carry_sprite ~= nil then
-    local offset_y = _s.bee.cy + _s[p.carry_sprite].cy
+    local offset_y = _s[p.sprite].cy + _s[p.carry_sprite].cy
     spr(s(p.carry_sprite, p.x, p.y + offset_y))
   end
 
   -- bee
-  spr(s("bee", p.x, p.y, not p.point_right))
+  spr(s(p.sprite, p.x, p.y, not p.point_right))
 end
 
 function go_to_overworld()
@@ -513,8 +535,8 @@ end
 
 function init_overworld()
   home_map = 1
-  map_list_left = {2,3,4,5}
-  map_list_right = {2,3,4,5}
+  map_list_left = {2,3} --4,5
+  map_list_right = {2,3} --4,5
   overworld_entities = {}
   overworld_updates = {}
   init_map_data_all({home_map}, 0)
@@ -557,10 +579,10 @@ function _update_hive()
   t = (t + 1) % 32767
   update_buttons()
   update_bee()
-  control()
+  control(hive_entities)
 
   apply_hive_walls(hive_entities)
-  apply_entity_updates(overworld_entities)
+  apply_entity_updates(hive_entities)
   check_overlap(hive_entities)
   apply_overlap(hive_entities)
 
@@ -579,11 +601,11 @@ function _draw_hive()
 
   -- bee carry
   if p.carry_sprite ~= nil then
-    local offset_y = _s.bee.cy + _s[p.carry_sprite].cy
+    local offset_y = _s[p.sprite].cy + _s[p.carry_sprite].cy
     spr(s(p.carry_sprite, p.x, p.y + offset_y))
   end
   -- bee
-  spr(s("bee", p.x, p.y, not p.point_right))
+  spr(s(p.sprite, p.x, p.y, not p.point_right))
 end
 
 function go_to_hive()
@@ -599,6 +621,19 @@ function eu_fall(entity, entities)
   if entity.y > floor_y then entity.y = floor_y end
 end
 
+function eu_wasp_cycle(entity, entities)
+  -- https://en.wikipedia.org/wiki/rose_(mathematics)
+  local n = 4;
+  local d = 6;
+  local k = n / d -- petal count; doubled if even? see article
+  local cycle_over_frames = 20 -- flr(rnd(45) + 45)
+  local theta = (t % (cycle_over_frames * d)) / cycle_over_frames
+  local offset_x = entity.petal_r * cos(k * theta) * cos(theta)
+  local offset_y = entity.petal_r * cos(k * theta) * sin(theta)
+  entity.x = entity.ox + offset_x
+  entity.y = entity.oy + offset_y
+end
+
 function eu_fall_off(entity, entities)
   entity.y = entity.y + normal_gravity
   if entity.y < -16 then er_delete(entity, entities) end
@@ -606,7 +641,7 @@ end
 
 -- prep entities
 function _init()
-  music(0)
+  -- music(0)
   overworld_updates = {}
   overworld_entities = {
     {type="food", x=136,y=floor_y,reactions={er_carry}}
@@ -628,9 +663,11 @@ function _init()
     },
     [2] = {
       default_entities = {
-        {type="food", x=78,y=86,reactions={er_carry}},
-        {type="food", x=54,y=86,reactions={er_carry}},
-        {type="food", x=94,y=86,reactions={er_carry}},
+        {type="food", x=79,y=87,reactions={er_carry}},
+        {type="food", x=55,y=87,reactions={er_carry}},
+        {type="food", x=95,y=87,reactions={er_carry}},
+        {type="wasp",x=64,y=16,petal_r=12,
+          updates={eu_wasp_cycle},reactions={er_drop, er_hurt}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
         log("update 2", distance_from_home, screen_offset_x)
@@ -638,10 +675,9 @@ function _init()
     },
     [3] = {
       default_entities = {
-        {type="food", x=64,y=12,reactions={}},
       },
       extra_entities = {
-        {type="spider", x=64,y=12,updates={eu_fall_off},reactions={er_drop}},
+        {type="spider", x=64,y=-4,updates={eu_fall_off},reactions={er_drop, er_hurt}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
         local local_px = p.x - screen_offset_x
@@ -659,6 +695,8 @@ end
 function inject_entity(entity, screen_offset_x)
   local new_entity = clone(entity)
   new_entity.x = new_entity.x + screen_offset_x
+  new_entity.ox = new_entity.x
+  new_entity.oy = new_entity.y
   add(overworld_entities, new_entity)
 end
 
@@ -688,9 +726,9 @@ __gfx__
 000bb000000cc000000ee000299224444442299200005552444400005445666f456664f00000000033333333333333333333333333333333000dd222dddd0000
 000000000000000000000000299244444444299200005222244400000445666f456664f00000000033333e3333333333333333833333333300ff22222dd00000
 000000000000000000000000299244444444299200005222244400000ff5666ff5666ff0000000005333e7e33333393333333878333333330ffff222ffd00000
-000770000000000000000000299244444444299200005222444400000f45666445666f400000000035333e33333397933333338333333335000ffd2dffff0000
-007777770000000000777700299224444442299200005552444400000f444f444f444f40000000000335333333333933333333333333535000000dddffff3000
-007777777770000007555570299992244229999200005222244400000ffffff88ffffff0000000000053353333333333333333333333350000000ddd33f3b000
+000770000000000000000000299244444444299200005222444400000f45666445666f401060000035333e33333397933333338333333335000ffd2dffff0000
+007777770000000000777700299224444442299200005552444400000f444f444f444f40095000000335333333333933333333333333535000000dddffff3000
+007777777770000007555570299992244229999200005222244400000ffffff88ffffff0999900000053353333333333333333333333350000000ddd33f3b000
 07777777777777000700007052299992299992250000522224440000044f4488884f44f00000000000035353333333333333333333533000000000d003330000
 07777777777777770677776005522999999225500005555244444000044f4485684f44f0000000000000055333333333333333333535000000000000003b0000
 676776766767767700666600000552299225500000552222444444000fffff8888fffff0000000000000000533333333333333333550000000000000b0300000
@@ -831,7 +869,7 @@ __sfx__
 000e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151001670023200247000000000000000000000000000232102121023210212101b210192101b21019210
 0003000023e2423e2022e201fe2021e2020e201fe201ee201ce201ae2017e2014e2010e2010e10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000400001cf301ff3025f302bf302ef3034f3009100061000710009100071000a100091000810009100091000810008100071000a10008100081000a10008100081000710009100071000a100081000910009100
-0004000031120291201e12017120141200e12009120041202bb3022b301bb3011b300ab3004b3001b202a310263101c3100f3100831002b100bd0005d0001d0001d0001d0001d000000000000000000000000000
+0002000031120291201e12017120141200e12009120041202bb0022b001bb0011b000ab0004b0001b002a300263001c3000f3000830002b000bd0005d0001d0001d0001d0001d000000000000000000000000000
 010e00003d6000000400000000003d6000000000000000003d6150000400000000003d600000003d600000003d6000000400000000003d6000000000000000003d615000043d615000003d615000003d60000000
 010e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151002321023200232100000000000000000000000000222102120022210212001b200192002021019200
 __music__
