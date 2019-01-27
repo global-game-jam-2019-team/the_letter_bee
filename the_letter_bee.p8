@@ -288,6 +288,21 @@ function er_consume_carry(entity, entities)
   p.carry_sprite = nil
 end
 
+function update_weather()
+  if not has_been_night and goals["food_blue"] then
+    is_day = false
+    has_been_night = true
+  else
+    is_day = true
+  end
+
+  local completed_goals = 0
+  for v in all(goals) do
+    completed_goals = completed_goals + 1
+  end
+  is_rainy = completed_goals == 2
+end
+
 -- entity reaction factory: consume carry only one type
 function erf_consume_carry_only(type)
   return function(entity, entities)
@@ -297,6 +312,7 @@ function erf_consume_carry_only(type)
 
     sfx(_sfx.pickup)
     goals[type] = true
+    update_weather()
 
     entity.post_draws = {
       function(entity, entities)
@@ -690,7 +706,8 @@ function draw_rain(seed, count, y)
 end
 
 function _draw_overworld()
-  cls"1"
+  local sky_color = is_day and 12 or 1
+  cls(sky_color)
 
   camera(cam_x,0)
   local sky_sprite = is_day and "sun" or "moon"
@@ -999,6 +1016,7 @@ end
 function game_start(entity, entities)
   p.carry_sprite = nil
   reset_goals()
+  update_weather()
   go_to_hive()
   p.x = 64
   p.y = 80
@@ -1105,6 +1123,7 @@ function _init()
           updates={eu_fall_n_run_off},reactions={er_drop, er_hurt, erf_sound(_sfx.spider)}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
+        if not p.carry_sprite then return end
         local local_px = p.x - screen_offset_x
         if local_px > 48 and local_px < 96 and not o.has_attacked then
           o.has_attacked = true
@@ -1149,6 +1168,7 @@ function _init()
           updates={eu_fall_n_run_off},reactions={er_drop, er_hurt, erf_sound(_sfx.spider)}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
+        if not p.carry_sprite then return end
         local local_px = p.x - screen_offset_x
         if local_px > 48 and local_px < 96 and not o.has_attacked then
           o.has_attacked = true
