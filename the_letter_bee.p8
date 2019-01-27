@@ -833,13 +833,13 @@ function init_overworld()
   map_list_left = {
     map_screens.spiders_and_trees,
     map_screens.open_space_variant_2,
-    map_screens.blue_flowers_and_wasps,
+    map_screens.green_flowers,
     map_screens.end_of_world,
   }
 
   map_list_right = {
+    map_screens.blue_flowers_and_wasps,
     map_screens.houses_and_lake,
-    map_screens.green_flowers,
     map_screens.houses_and_wasps,
     map_screens.pink_flowers_and_spiders,
     map_screens.end_of_world,
