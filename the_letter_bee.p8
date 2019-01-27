@@ -174,8 +174,12 @@ end
 
 -- entity reaction: hurt
 function er_hurt(entity, entities)
+  local knockback = 10
   p.sprite = "bee_pink"
   sfx(_sfx.hurt)
+  local theta = atan2(p.x-entity.x, p.y-entity.y)
+  p.x = p.x + cos(theta) * knockback
+  p.y = p.y + sin(theta) * knockback
 end
 
 -- entity reaction: drop
@@ -525,8 +529,8 @@ end
 
 function init_overworld()
   home_map = 1
-  map_list_left = {2,3,4,5}
-  map_list_right = {2,3,4,5}
+  map_list_left = {2,3} --4,5
+  map_list_right = {2,3} --4,5
   overworld_entities = {}
   overworld_updates = {}
   init_map_data_all({home_map}, 0)
