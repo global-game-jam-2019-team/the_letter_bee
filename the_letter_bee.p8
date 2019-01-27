@@ -133,17 +133,17 @@ _s = {
   bee_busy   = {n= 41, w=1, h=1, cx=0, cy=0, r=1},
   bee_busier = {n= 57, w=1, h=1, cx=0, cy=0, r=1},
 
-  food       = {n= 16, w=1, h=1, cx=4, cy=4, r=4, bouncy=true},
-  food_green = {n= 32, w=1, h=1, cx=4, cy=4, r=4, bouncy=true},
-  food_blue  = {n= 33, w=1, h=1, cx=4, cy=4, r=4, bouncy=true},
-  food_pink  = {n= 34, w=1, h=1, cx=4, cy=4, r=4, bouncy=true},
+  food       = {n= 16, w=1, h=1, cx=4, cy=4, r=4},
+  food_green = {n= 32, w=1, h=1, cx=4, cy=4, r=4},
+  food_blue  = {n= 33, w=1, h=1, cx=4, cy=4, r=4},
+  food_pink  = {n= 34, w=1, h=1, cx=4, cy=4, r=4},
 
   hive   =     {n=  3, w=2, h=2, cx=8, cy=8, r=8},
   exit   =     {n=  0, w=1, h=1, cx=8, cy=8, r=8},
   cloud  =     {n=  5, w=2, h=1, cx=8, cy=8},
   cloud2 =     {n= 48, w=2, h=1, cx=8, cy=8},
   floor  =     {n=  7, w=2, h=1, cx=4, cy=4},
-  speech =     {n=  8, w=2, h=2, cx=8, cy=8, bouncy=true},
+  speech =     {n=  8, w=2, h=2, cx=8, cy=8},
   sun    =     {n= 14, w=2, h=2, cx=8, cy=8},
   smoke_l=     {n= 50, w=1, h=1, cx=4, cy=4},
   smoke_s=     {n= 23, w=1, h=1, cx=4, cy=4},
@@ -166,13 +166,6 @@ _sfx = {
 function s(name, x, y, flip_x, flip_y)
   local sd = _s[name]
   return sd.n, x-sd.cx, y-sd.cy, sd.w, sd.h, flip_x, flip_y
-end
-
--- gathers spr parameters
-function sb(name, x, y, flip_x, flip_y)
-  local sd = _s[name]
-  local bounce = sd.bouncy and (t % 10 < 5) and 1 or 0
-  return sd.n, x-sd.cx, y-sd.cy+bounce, sd.w, sd.h, flip_x, flip_y
 end
 
 -- entity reaction: delete
@@ -241,15 +234,6 @@ function erf_consume_carry_only(type)
     }
     
     log(type .. type, entity.x, entity.y)
-  end
-end
-
--- entity post draw factory: speech icon
-function epdf_speech_text(text)
-  return function(entity, entities)
-    local sprite = _s[entity.type]
-    local bounce = sprite.bouncy and (t % 10 < 5) and 1 or 0
-    print(text, entity.x-sprite.cx/2, entity.y-sprite.cy/2+bounce, 0)
   end
 end
 
@@ -454,7 +438,7 @@ end
 function draw_entities(entities)
   for i=1,#entities do
     local e = entities[i]
-    spr(sb(e.type, e.x, e.y))
+    spr(s(e.type, e.x, e.y))
 
     local post_draws = e.post_draws
     if post_draws ~= nil then
@@ -465,6 +449,7 @@ function draw_entities(entities)
     end
   end
 end
+
 
 -------------------------------
 -- utilities
@@ -530,6 +515,17 @@ function _update_overworld()
   apply_map_updates(overworld_updates)
 
   update_camera()
+  if t % 10 < 5 then
+    _s.food.cy = 5
+    _s.food_blue.cy = 5
+    _s.food_pink.cy = 5
+    _s.food_green.cy = 5
+  else
+    _s.food.cy = 4
+    _s.food_blue.cy = 4
+    _s.food_pink.cy = 4
+    _s.food_green.cy = 4
+  end
 
   log("stats","mem",stat(0),"cpu",stat(1))
 end
@@ -575,7 +571,6 @@ function _draw_overworld()
 end
 
 function go_to_overworld()
-  music(0)
   _update = _update_overworld
   _draw = _draw_overworld
   cam_x = 0
@@ -683,7 +678,6 @@ function _draw_hive()
 end
 
 function go_to_hive()
-  music(4)
   _update = _update_hive
   _draw = _draw_hive
   p.y = 128 - 8 - p.r - p.r
@@ -764,8 +758,8 @@ function _init()
     
     {type="honeycomb", x=96,   y=96,    reactions={erf_consume_carry_only("food_blue")}},
     {type="bee_blue",  x=96,   y=96-20, petal_r=5,updates={eu_bee_jank}},
-    {type="speech",    x=96-4, y=96-20-12,post_draws={epdf_speech_text("hi")}},
-    -- {type="food_blue", x=96-4, y=96-20-12,},
+    {type="speech",    x=96-4, y=96-20-12,},
+    {type="food_blue", x=96-4, y=96-20-12,},
 
     {type="honeycomb", x=64,   y=48,    reactions={erf_consume_carry_only("food_green")}},
     {type="bee_green", x=64,   y=48-20, petal_r=5,updates={eu_bee_jank}},
@@ -1010,16 +1004,17 @@ __sfx__
 010e00000000000000196230d6000d60000000196240d6000d600000001962300000196000000019623000000d6000000019623000000d6000000019624000000d6000000019623000000d600000001962300000
 000e00000d2100d2000d2100d2000d2100d2000d21001200142100000014210012001421001200142100120012210002001221000200122100020012210002001721003200172100f20017210032001721003200
 010e00003d6000000400000000003d6000000000000000003d6153d6003d600000003d600000003d600000003d6000000400000000003d6000000000000000003d615000043d615000003d6003d6003d60000000
-000e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151001670023200247000000000000000000000000000232102121023210212101b210192101b21019210
+000e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151001670023200247000000000000000000000000000232002120023210212101b210192101b21019210
 0003000023e2423e2022e201fe2021e2020e201fe201ee201ce201ae2017e2014e2010e2010e10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000400001cf301ff3025f302bf302ef3034f3009100061000710009100071000a100091000810009100091000810008100071000a10008100081000a10008100081000710009100071000a100081000910009100
 0002000031120291201e12017120141200e12009120041202bb0022b001bb0011b000ab0004b0001b002a300263001c3000f3000830002b000bd0005d0001d0001d0001d0001d000000000000000000000000000
 010e00003d6000000400000000003d6000000000000000003d6150000400000000003d600000003d600000003d6000000400000000003d6000000000000000003d615000043d615000003d615000003d60000000
 010e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151002321023200232100000000000000000000000000222102120022210212001b200192002021019200
+010e00000d2100d2000d2100d2000d2100d2000d21001200142100000014210012001421001200142100120017210032001721000200172100320017210002001221000200122100f20012210002001221003200
 __music__
-01 01020304
+01 01020b04
 00 0a020309
-00 01020304
+00 01020b04
 02 05020309
 03 00424344
 
