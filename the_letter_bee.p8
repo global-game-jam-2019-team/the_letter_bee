@@ -689,11 +689,11 @@ function _init()
   }
 
   hive_entities = {
-    {type="exit",      x=64, y=128,reactions={go_to_overworld}},
-    {type="honeycomb", x=96, y=96,reactions={er_consume_carry}},
-    {type="bee_blue",  x=96, y=76,petal_r=5,updates={eu_bee_jank}},
-    {type="speech",    x=96, y=76-12,},
-    {type="food_blue", x=96, y=76-12,},
+    {type="exit",      x=64,   y=128,   reactions={go_to_overworld}},
+    {type="honeycomb", x=96,   y=96,    reactions={er_consume_carry}},
+    {type="bee_blue",  x=96,   y=96-20, petal_r=5,updates={eu_bee_jank}},
+    {type="speech",    x=96-4, y=96-20-12,},
+    {type="food_blue", x=96-4, y=96-20-12,},
   }
   for entity in all(hive_entities) do
     entity.ox = entity.x
