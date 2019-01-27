@@ -857,6 +857,11 @@ function _update_title()
   if b(5).isdown then
     game_start()
   end
+
+  if b(0).isdown and b(1).isdown then
+    game_start()
+    go_to_overworld()
+  end
 end
 
 function _draw_title()
