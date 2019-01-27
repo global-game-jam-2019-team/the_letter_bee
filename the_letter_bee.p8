@@ -782,10 +782,10 @@ end
 function _draw_title()
   cls(15)
 
-  -- draw_busy_bees(_s.bee_busy,   50, 100,  5, 1)
-  -- draw_busy_bees(_s.bee_busier, 50, 101, -5, 1)
-  -- draw_busy_bees(_s.bee_busy,   50, 102, -3, 2)
-  -- draw_busy_bees(_s.bee_busier, 50, 103,  3, 2)
+  draw_busy_bees(_s.bee_busy,   50, 100,  5, 1)
+  draw_busy_bees(_s.bee_busier, 50, 101, -5, 1)
+  draw_busy_bees(_s.bee_busy,   50, 102, -3, 2)
+  draw_busy_bees(_s.bee_busier, 50, 103,  3, 2)
 
   map( 0,64-16, 0,0, 16,16)
   map(32,64-16, 0,0, 16,16)
