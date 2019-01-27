@@ -300,7 +300,6 @@ function check_overlap(entities)
     local e = entities[i]
     e.is_touched = false
     local sprite = _s[e.type]
-    -- log("checking", e.type,e.x, )
     local e_r = sprite.r
     if e_r ~= nil then
       local dx = e.x - p.x
@@ -310,10 +309,10 @@ function check_overlap(entities)
         local d2_limit = pow2(bee_r + e_r)
         if d2 < d2_limit then
           e.is_touched = true
-          log("colliding", e.type, bee_r, e_r)
-          log("colliding", dx, dy)
-          log("colliding", d2, d2_limit)
-          log("colliding", e.x, e.y, p.x, p.y)
+          -- log("colliding", e.type, bee_r, e_r)
+          -- log("colliding", dx, dy)
+          -- log("colliding", d2, d2_limit)
+          -- log("colliding", e.x, e.y, p.x, p.y)
         end
       end
     end
@@ -329,7 +328,7 @@ function apply_overlap(entities)
       -- _s.bee.n = 2
       local reactions = e.reactions
       if reactions ~= nil then
-        log("#reactions", #reactions)
+        -- log("#reactions", #reactions)
         for reaction in all(reactions) do
           reaction(e, entities)
         end
@@ -343,7 +342,7 @@ function apply_entity_updates(entities)
     local e = entities[i]
     local updates = e.updates
     if updates ~= nil then
-      log("#updates", #updates)
+      -- log("#updates", #updates)
       for update in all(updates) do
         update(e, entities)
       end
@@ -354,7 +353,7 @@ end
 function update_camera()
   cam_x_right_limit = p.x - cam_x_screen_limit
   cam_x_left_limit = p.x - (128 - cam_x_screen_limit)
-  log("bee", cam_x_right_limit, cam_x_left_limit, p.x)
+  -- log("bee", cam_x_right_limit, cam_x_left_limit, p.x)
   if cam_x > cam_x_right_limit then cam_x = cam_x_right_limit end
   if cam_x < cam_x_left_limit then cam_x = cam_x_left_limit end
 end
@@ -396,7 +395,7 @@ end
 
 function pick_map_old()
   local i = rnd_index(available_maps)
-  log("map", i, #available_maps)
+  -- log("map", i, #available_maps)
   return available_maps[rnd_index(available_maps)]
 end
 
