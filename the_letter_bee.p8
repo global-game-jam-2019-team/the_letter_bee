@@ -18,7 +18,9 @@ local p =              -- player
    sprite="bee",
    carry_sprite=nil}
 local bee_gravity = 0
+local bee_gravity_carry = 1
 local bee_speed = 3 -- 1.75
+local bee_speed_carry = 1.75
 local bee_jank_skip_rate = 3
 local bee_jank_factor_y = 1.25
 local bee_jank_factor_x = .5
@@ -271,13 +273,13 @@ function erf_consume_carry_only(type)
     entity.post_draws = {
       function(entity, entities)
         if not goals[type] then return end
-        log(type, entity.x, entity.y)
+        -- log(type, entity.x, entity.y)
         local n, cx, cy, w, h, flip_x, flip_y = s(type, entity.x, entity.y)
         spr(n, cx, cy+1, w, h/2, flip_x, flip_y)
       end
     }
 
-    log(type .. type, entity.x, entity.y)
+    -- log(type .. type, entity.x, entity.y)
   end
 end
 
@@ -375,7 +377,8 @@ end
 
 function update_bee()
   p.sprite = "bee"
-  p.y = p.y + bee_gravity
+  local gravity = p.carry_sprite and bee_gravity_carry or bee_gravity
+  p.y = p.y + gravity
   if t % bee_jank_skip_rate ~= 0 then
     local angle = rnd(1)
     local fx = cos(angle) * bee_jank_factor_x
@@ -402,14 +405,15 @@ function apply_hive_walls(entities)
 end
 
 function control(entities)
+  local used_speed = p.carry_sprite and bee_speed_carry or bee_speed
   -- left
   if b(0).isdown then
-    p.x = p.x - bee_speed
+    p.x = p.x - used_speed
     p.point_right = false
   end
   -- right
   if b(1).isdown then
-    p.x = p.x + bee_speed
+    p.x = p.x + used_speed
     p.point_right = true
   end
   -- up
@@ -961,7 +965,7 @@ function _init()
         {type="exit", x=32+16, y=112+12,post_draws={epdf_lake(16,16,12)}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
-        log("update 1", distance_from_home, screen_offset_x)
+        -- log("update 1", distance_from_home, screen_offset_x)
       end
     },
     [2] = {
@@ -977,7 +981,7 @@ function _init()
           updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
-        log("update 2", distance_from_home, screen_offset_x)
+        -- log("update 2", distance_from_home, screen_offset_x)
       end
     },
     [3] = {
