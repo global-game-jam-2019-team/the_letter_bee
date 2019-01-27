@@ -378,6 +378,10 @@ end
 function apply_floors(entities)
   if p.y < p.r then p.y = p.r end
   if p.y > floor_y then p.y = floor_y end
+  local right_limit = get_screen_offset(#map_list_right)
+  if p.x > right_limit then p.x = right_limit end
+  local left_limit = get_screen_offset(-#map_list_left + 1)
+  if p.x < left_limit then p.x = left_limit end
 end
 
 function apply_hive_walls(entities)
@@ -871,6 +875,7 @@ end
 -- initializes and starts the game
 function game_start(entity, entities)
   p.carry_sprite = nil
+  reset_goals()
   go_to_hive()
   p.x = 64
   p.y = 80
