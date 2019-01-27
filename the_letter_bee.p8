@@ -26,7 +26,7 @@ local bee_jank_factor_y = 1.25
 local bee_jank_factor_x = .5
 local normal_gravity = 4
 local normal_flee_speed = 4
-local is_day = true
+local is_day = false
 local is_overcast = false
 local is_rainy = true
 
@@ -205,6 +205,7 @@ _s = {
   floor  =     {n=  7, w=2, h=1, cx=4, cy=4},
   speech =     {n=  8, w=2, h=2, cx=8, cy=8, bouncy=true},
   sun    =     {n= 14, w=2, h=2, cx=8, cy=8, bouncy=true},
+  moon   =     {n= 72, w=2, h=2, cx=8, cy=8, bouncy=true},
   smoke_l=     {n= 50, w=1, h=1, cx=4, cy=4},
   smoke_s=     {n= 23, w=1, h=1, cx=4, cy=4},
   spider =     {n= 22, w=1, h=1, cx=4, cy=4, r=4},
