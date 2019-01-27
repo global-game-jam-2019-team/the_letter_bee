@@ -888,7 +888,6 @@ function _draw_hive()
     spr(s(p.sprite, p.x, p.y, not p.point_right))
   end
 
-  all_goals = true
   if all_goals then
     too_many_hearts()
   end
