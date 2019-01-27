@@ -16,7 +16,11 @@ local p =              -- player
    col = 8, mode = 1, point_right = true,
    carry_sprite="food_green"}
 local bee_gravity = 0
+<<<<<<< HEAD
 local bee_speed = 1.75
+=======
+local bee_speed = 1
+>>>>>>> 4cbf200a160dbd1a96a7cc574ee28e33603ca0a3
 local bee_jank_skip_rate = 3
 local bee_jank_factor_y = 1.25
 local bee_jank_factor_x = .5
