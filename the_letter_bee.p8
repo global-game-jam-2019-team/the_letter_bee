@@ -302,8 +302,10 @@ function update_weather()
   end
 
   local completed_goals = 0
-  for v in all(goals) do
-    completed_goals = completed_goals + 1
+  for k,v in pairs(goals) do
+    if v then
+      completed_goals = completed_goals + 1
+    end
   end
   is_rainy = completed_goals == 2
   all_goals = completed_goals >= 3
