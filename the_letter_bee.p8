@@ -202,6 +202,8 @@ _s = {
   exit   =     {n=  0, w=1, h=1, cx=8, cy=8, r=8},
   cloud  =     {n=  5, w=2, h=1, cx=8, cy=8, bouncy=true},
   cloud2 =     {n= 48, w=2, h=1, cx=8, cy=8},
+  hill_top =   {n=100, w=1, h=1, cx=4, cy=4},
+  hill_bottom =   {n=116, w=1, h=1, cx=4, cy=4},
   floor  =     {n=  7, w=2, h=1, cx=4, cy=4},
   speech =     {n=  8, w=2, h=2, cx=8, cy=8, bouncy=true},
   sun    =     {n= 14, w=2, h=2, cx=8, cy=8, bouncy=true},
@@ -674,6 +676,40 @@ function apply_map_updates(updates)
   end
 end
 
+function parallax_hills(seed, count, speed, scale, y_spread)
+  local reseed = rnd(10000)
+  srand(seed)
+
+  local right_limit = get_screen_offset(#map_list_right)
+  local left_limit = abs(get_screen_offset(-#map_list_left + 1))
+  right_limit = right_limit / (speed * 2)
+  left_limit = left_limit / (speed * 2)
+  for i=1,count do
+    local sx = rnd(right_limit + left_limit) - left_limit
+    -- local sy = y + rnd(y_spread)
+    sx = sx + speed * -cam_x
+
+    local hill_count = flr(rnd(3)) + 1
+    local hill_y_pos = 92
+
+    if hill_count == 1 then
+      spr(s("hill_top", sx, hill_y_pos))
+    end
+
+    if hill_count == 2 then
+      spr(s("hill_top", sx, hill_y_pos-8))
+      spr(s("hill_bottom", sx, hill_y_pos))
+    end
+
+    if hill_count == 3 then
+      spr(s("hill_top", sx, hill_y_pos-16))
+      spr(s("hill_bottom", sx, hill_y_pos-8))
+      spr(s("hill_bottom", sx, hill_y_pos))
+    end
+  end
+  srand(reseed)
+end
+
 function parallax_clouds(seed, count, speed, scale, y, y_spread)
   local reseed = rnd(10000)
   srand(seed)
@@ -721,6 +757,10 @@ function _draw_overworld()
   camera(cam_x,0)
   local sky_sprite = is_day and "sun" or "moon"
   spr(sb(sky_sprite, cam_x + 112, 12))
+
+  for i=1,8 do
+    parallax_hills(100 * i, 50, 0.25, 1, 8)
+  end
 
   parallax_clouds(100, 50, 0.25, 1, 16, 24)
   parallax_clouds(105, 50, 0.125, 1, 24, 24)
