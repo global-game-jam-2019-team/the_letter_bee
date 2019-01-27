@@ -301,6 +301,7 @@ function update_weather()
     completed_goals = completed_goals + 1
   end
   is_rainy = completed_goals == 2
+  all_goals = completed_goals >= 3
 end
 
 -- entity reaction factory: consume carry only one type
@@ -358,6 +359,8 @@ goals = {
   food_green = false,
   food_pink  = false,
 }
+
+all_goals = false
 
 -- entity post draw factory: goal
 function epdf_speech_goal_indicator(goal)
@@ -862,26 +865,51 @@ function draw_busy_bees(sprite, count, seed, tx, ty)
 end
 
 function _draw_hive()
-  cls"15"
   camera(0,0)
-  draw_busy_bees(_s.bee_busy,   50, 100,  5, 1)
-  draw_busy_bees(_s.bee_busier, 50, 101, -5, 1)
-  draw_busy_bees(_s.bee_busy,   50, 102, -3, 2)
-  draw_busy_bees(_s.bee_busier, 50, 103,  3, 2)
+  if #hearts < 1500 then 
+    cls"15"
+    draw_busy_bees(_s.bee_busy,   50, 100,  5, 1)
+    draw_busy_bees(_s.bee_busier, 50, 101, -5, 1)
+    draw_busy_bees(_s.bee_busy,   50, 102, -3, 2)
+    draw_busy_bees(_s.bee_busier, 50, 103,  3, 2)
 
-  map( 0,64-16, 0,0, 16,16)
-  map(16,64-16, 0,0, 16,16)
+    map( 0,64-16, 0,0, 16,16)
+    map(16,64-16, 0,0, 16,16)
 
-  -- entities
-  draw_entities(hive_entities)
+    -- entities
+    draw_entities(hive_entities)
 
-  -- bee carry
-  if p.carry_sprite ~= nil then
-    local offset_y = _s[p.sprite].cy + _s[p.carry_sprite].cy
-    spr(s(p.carry_sprite, p.x, p.y + offset_y))
+    -- bee carry
+    if p.carry_sprite ~= nil then
+      local offset_y = _s[p.sprite].cy + _s[p.carry_sprite].cy
+      spr(s(p.carry_sprite, p.x, p.y + offset_y))
+    end
+    -- bee
+    spr(s(p.sprite, p.x, p.y, not p.point_right))
   end
-  -- bee
-  spr(s(p.sprite, p.x, p.y, not p.point_right))
+
+  all_goals = true
+  if all_goals then
+    too_many_hearts()
+  end
+end
+
+hearts = {}
+function too_many_hearts(seed, count, f_cycle, speed, wave_width)
+  if #hearts < 2000 then
+    for i=1,10 do
+      add(hearts, {x=rnd(128+64)-32, y=rnd(32)+128})
+    end
+  end
+
+  for i=#hearts,1,-1 do
+    h = hearts[i]
+    if h.y < -16 then del(hearts, h) end
+    h.y = h.y - 1
+    local theta = (t + i) / 300
+    h.x = h.x + cos(theta)
+    spr(s("heart", h.x, h.y))
+  end
 end
 
 function go_to_hive()
