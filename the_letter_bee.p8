@@ -594,6 +594,28 @@ end
 function _draw_hive()
   cls"15"
   camera(0,0)
+  pal(2,15)
+  pal(5,15)
+  pal(9,15)
+
+  local reseed = rnd(1000)
+  srand(100)
+  for i=1,30 do
+    local x = ((rnd(192) + t) % 192) - 32
+    local y = ((rnd(192) + t/4) % 192) - 32
+    spr(_s.honeycomb.n, x,y, _s.honeycomb.w,_s.honeycomb.h)
+  end
+  srand(reseed)
+
+  pal(2,2)
+  pal(5,5)
+  pal(9,9)
+  
+  camera(0,0)
+  pal(2,0)
+  pal(5,0)
+  pal(9,0)
+
   -- map(0,64-16, 0,0, 16,16)
 
   -- entities
@@ -616,11 +638,20 @@ end
 -- go_to_overworld()
 go_to_hive()
 
-function eu_fall(entity, entities)
-  entity.y = entity.y + normal_gravity
-  if entity.y > floor_y then entity.y = floor_y end
+function eu_bee_jank(entity, entities)
+  -- https://en.wikipedia.org/wiki/rose_(mathematics)
+  local n = 1;
+  local d = 6;
+  local k = n / d -- petal count; doubled if even? see article
+  local cycle_over_frames = 15
+  local theta = (t % (cycle_over_frames * d)) / cycle_over_frames
+  local offset_x = entity.petal_r * cos(k * theta) * cos(theta)
+  local offset_y = entity.petal_r * cos(k * theta) * sin(theta)
+  entity.x = entity.ox + offset_x
+  entity.y = entity.oy + offset_y
 end
 
+-- entity update: wasp roaming behavior
 function eu_wasp_cycle(entity, entities)
   -- https://en.wikipedia.org/wiki/rose_(mathematics)
   local n = 4;
@@ -634,6 +665,13 @@ function eu_wasp_cycle(entity, entities)
   entity.y = entity.oy + offset_y
 end
 
+-- entity update: fall (to ground)
+function eu_fall(entity, entities)
+  entity.y = entity.y + normal_gravity
+  if entity.y > floor_y then entity.y = floor_y end
+end
+
+-- entity update: fall (entirely offscreen)
 function eu_fall_off(entity, entities)
   entity.y = entity.y + normal_gravity
   if entity.y < -16 then er_delete(entity, entities) end
@@ -649,8 +687,13 @@ function _init()
 
   hive_entities = {
     {type="hive",      x=64, y=128-_s.hive.cy,reactions={go_to_overworld}},
-    {type="honeycomb", x=96,y=96,reactions={er_consume_carry}}
+    {type="honeycomb", x=96,y=96,reactions={er_consume_carry}},
+    {type="bee_blue",  x=96,y=80,petal_r=5,updates={eu_bee_jank}},
   }
+  for entity in all(hive_entities) do
+    entity.ox = entity.x
+    entity.oy = entity.y
+  end
 
   map_setup = {
     [1] = {
