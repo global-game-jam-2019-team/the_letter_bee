@@ -148,7 +148,9 @@ _s = {
   smoke_l=     {n= 50, w=1, h=1, cx=4, cy=4},
   smoke_s=     {n= 23, w=1, h=1, cx=4, cy=4},
   spider =     {n= 22, w=1, h=1, cx=4, cy=4, r=4},
-  hornet   =     {n= 21, w=1, h=1, cx=4, cy=4, r=4},
+  hornet =     {n= 21, w=1, h=1, cx=4, cy=4, r=4},
+
+  heart =      {n= 86, w=1, h=1, cx=5, cy=4, r=4, bouncy=true},
 
   honeycomb =  {n= 35, w=2, h=2, cx=8, cy=8, r=8},
   -- todo: tree.
@@ -231,6 +233,7 @@ function erf_consume_carry_only(type)
     p.carry_sprite = nil
 
     sfx(_sfx.pickup)
+    goals[type] = true
 
     entity.post_draws = {
       function(entity, entities)
@@ -250,6 +253,30 @@ function epdf_speech_text(text)
     local sprite = _s[entity.type]
     local bounce = sprite.bouncy and (t % 10 < 5) and 1 or 0
     print(text, entity.x-sprite.cx/2, entity.y-sprite.cy/2+bounce, 0)
+  end
+end
+
+-- entity post draw factory: speech icon
+function epdf_speech_icon(type)
+  return function(entity, entities)
+    spr(sb(type, entity.x, entity.y))
+  end
+end
+
+goals = {
+  food_blue  = false,
+  food_green = false,
+  food_pink  = false,
+}
+
+-- entity post draw factory: goal
+function epdf_speech_goal_indicator(goal)
+  return function(entity, entities)
+    if not goals[goal] then
+      spr(sb(goal, entity.x, entity.y))
+    else
+      spr(sb("heart", entity.x, entity.y))
+    end
   end
 end
 
@@ -764,7 +791,7 @@ function _init()
     
     {type="honeycomb", x=96,   y=96,    reactions={erf_consume_carry_only("food_blue")}},
     {type="bee_blue",  x=96,   y=96-20, petal_r=5,updates={eu_bee_jank}},
-    {type="speech",    x=96-4, y=96-20-12,post_draws={epdf_speech_text("hi")}},
+    {type="speech",    x=96-4, y=96-20-12,post_draws={epdf_speech_goal_indicator("food_blue")}},
     -- {type="food_blue", x=96-4, y=96-20-12,},
 
     {type="honeycomb", x=64,   y=48,    reactions={erf_consume_carry_only("food_green")}},
