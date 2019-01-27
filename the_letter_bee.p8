@@ -569,6 +569,8 @@ function _init()
     [2] = {
       default_entities = {
         {type="food", x=78,y=86,reactions={er_carry}},
+        {type="food", x=54,y=86,reactions={er_carry}},
+        {type="food", x=94,y=86,reactions={er_carry}},
       },
       update = function() log"2222 update 2222" end
     },
