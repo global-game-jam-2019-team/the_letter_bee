@@ -147,14 +147,18 @@ _s = {
   smoke_l=     {n= 50, w=1, h=1, cx=4, cy=4},
   smoke_s=     {n= 23, w=1, h=1, cx=4, cy=4},
   spider =     {n= 22, w=1, h=1, cx=4, cy=4, r=4},
-  wasp   =     {n= 21, w=1, h=1, cx=4, cy=4, r=4},
+  hornet   =     {n= 21, w=1, h=1, cx=4, cy=4, r=4},
 
   honeycomb =  {n= 35, w=2, h=2, cx=8, cy=8, r=8},
   -- todo: tree.
 }
 
 _sfx = {
-  hurt = 8
+  beetalk    = 0,
+  hurt       = 8,
+  pickup     = 7,
+  spider     = 6,
+  hornet     = 6,
 }
 
 -- gathers spr parameters
@@ -172,7 +176,14 @@ end
 function er_carry(entity, entities)
   if p.carry_sprite ~= nil then return end
   p.carry_sprite = entity.type
+  sfx(_sfx.pickup)
   del(entities, entity)
+end
+
+function erf_sound(sfx_id)
+  return function(entity, entities)
+    sfx(sfx_id)
+  end
 end
 
 -- entity reaction: hurt
@@ -210,6 +221,9 @@ function erf_consume_carry_only(type)
     if p.carry_sprite == nil then return end
     if p.carry_sprite ~= type then return end
     p.carry_sprite = nil
+
+    sfx(_sfx.pickup)
+
     entity.post_draws = {
       function(entity, entities)
         log(type, entity.x, entity.y)
@@ -680,8 +694,8 @@ function eu_bee_jank(entity, entities)
   entity.y = entity.oy + offset_y
 end
 
--- entity update: wasp roaming behavior
-function eu_wasp_cycle(entity, entities)
+-- entity update: hornet roaming behavior
+function eu_hornet_cycle(entity, entities)
   -- https://en.wikipedia.org/wiki/rose_(mathematics)
   local n = 4;
   local d = 6;
@@ -751,8 +765,8 @@ function _init()
         {type="food_green", x=79,y=87,reactions={er_carry}},
         {type="food_blue", x=55,y=87,reactions={er_carry}},
         {type="food_pink", x=95,y=87,reactions={er_carry}},
-        {type="wasp",x=64,y=16,petal_r=12,
-          updates={eu_wasp_cycle},reactions={er_drop, er_hurt}},
+        {type="hornet",x=64,y=16,petal_r=12,
+          updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
         log("update 2", distance_from_home, screen_offset_x)
@@ -762,13 +776,21 @@ function _init()
       default_entities = {
       },
       extra_entities = {
-        {type="spider", x=64,y=-4,updates={eu_fall_off},reactions={er_drop, er_hurt}},
+        {type="spider", x=32,y=-4,
+          updates={eu_fall_off},reactions={er_drop, er_hurt, erf_sound(_sfx.spider)}},
+        {type="spider", x=64,y=-8,
+          updates={eu_fall_off},reactions={er_drop, er_hurt, erf_sound(_sfx.spider)}},
+        {type="spider", x=96,y=-12,
+          updates={eu_fall_off},reactions={er_drop, er_hurt, erf_sound(_sfx.spider)}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
         local local_px = p.x - screen_offset_x
-        if local_px > 64 and not o.has_attacked then
+        if local_px > 48 and local_px < 96 and not o.has_attacked then
           o.has_attacked = true
-          inject_entity(map_data.extra_entities[1], screen_offset_x)
+          for extra_entity in all(map_data.extra_entities) do
+            inject_entity(extra_entity, screen_offset_x)
+          end
+          sfx(_sfx.spider)
         end
       end
     }
