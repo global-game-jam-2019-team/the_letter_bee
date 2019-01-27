@@ -892,10 +892,7 @@ function _draw_title()
   spr(s(p.sprite, p.x, p.y, not p.point_right))
 
   -- title text
-  --print("bee buds", 50, 20, 0)
-  -- spr(_s.logo.n, 30, 30, 4, 2)
-  --spr(n, x, y, [w, h], [flip_x], [flip_y])
-  sspr(0, 48, 32, 16, 10, 10, 72, 32)
+  sspr(0, 48, 32, 16, 10, 10, 108, 32)
   print ("press x to begin", 32, 128-30)
 end
 
