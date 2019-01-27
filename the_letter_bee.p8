@@ -232,7 +232,7 @@ function erf_consume_carry_only(type)
         spr(n, cx, cy+1, w, h/2, flip_x, flip_y)
       end
     }
-    
+
     log(type .. type, entity.x, entity.y)
   end
 end
@@ -684,9 +684,36 @@ function go_to_hive()
   p.x = 64
 end
 
+function go_to_title()
+  _update = _update_title
+  _draw = _draw_title
+end
+
+function _update_title()
+
+end
+
+function _draw_title()
+  cls(15)
+
+  -- draw_busy_bees(_s.bee_busy,   50, 100,  5, 1)
+  -- draw_busy_bees(_s.bee_busier, 50, 101, -5, 1)
+  -- draw_busy_bees(_s.bee_busy,   50, 102, -3, 2)
+  -- draw_busy_bees(_s.bee_busier, 50, 103,  3, 2)
+
+  map(0,64-16, 0,0, 16,16)
+  map(16,64-16, 0,0, 16,16)
+  print("BEE BUDS", 50, 20, 0)
+  print ("Press X to begin", 32, 128-30)
+
+end
+
 -- go_to_overworld()
-go_to_hive()
-p.y = 64
+
+-- go_to_hive()
+-- p.y = 64
+
+go_to_title()
 
 function eu_bee_jank(entity, entities)
   -- https://en.wikipedia.org/wiki/rose_(mathematics)
@@ -755,7 +782,7 @@ function _init()
 
   hive_entities = {
     {type="exit",      x=64,   y=128,   reactions={go_to_overworld}},
-    
+
     {type="honeycomb", x=96,   y=96,    reactions={erf_consume_carry_only("food_blue")}},
     {type="bee_blue",  x=96,   y=96-20, petal_r=5,updates={eu_bee_jank}},
     {type="speech",    x=96-4, y=96-20-12,},
