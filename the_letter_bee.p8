@@ -7,16 +7,17 @@ __lua__
 --------------------------------
 
 local cam_x = 0
-local cam_x_screen_limit = 16
+local cam_x_screen_limit = 48
 
 local t = 0      -- current time
 local p =              -- player
  { x = 64, y = 64, move_timer = 0,
    cycling = false, cycle_timer = 0,
    col = 8, mode = 1, point_right = true,
+   r = 4,
    carry_sprite=nil}
 local bee_gravity = 0
-local bee_speed = 1.75
+local bee_speed = 3 -- 1.75
 local bee_jank_skip_rate = 3
 local bee_jank_factor_y = 1.25
 local bee_jank_factor_x = .5
@@ -127,17 +128,22 @@ _s = {
   bee_green  = {n=  2, w=1, h=1, cx=4, cy=4, r=4},
   bee_blue   = {n= 17, w=1, h=1, cx=4, cy=4, r=4},
   bee_pink   = {n= 18, w=1, h=1, cx=4, cy=4, r=4},
+
   food       = {n= 16, w=1, h=1, cx=4, cy=4, r=4},
   food_green = {n= 32, w=1, h=1, cx=4, cy=4, r=4},
-  food_pink  = {n= 33, w=1, h=1, cx=4, cy=4, r=4},
-  food_blue  = {n= 34, w=1, h=1, cx=4, cy=4, r=4},
+  food_blue  = {n= 33, w=1, h=1, cx=4, cy=4, r=4},
+  food_pink  = {n= 34, w=1, h=1, cx=4, cy=4, r=4},
 
   hive   =     {n=  3, w=2, h=2, cx=8, cy=8, r=8},
   cloud  =     {n=  5, w=2, h=1, cx=8, cy=8},
   cloud2 =     {n= 48, w=2, h=1, cx=8, cy=8},
   floor  =     {n=  7, w=2, h=1, cx=4, cy=4},
   speech =     {n=  8, w=2, h=2, cx=12,cy=16},
-  speech =     {n=  7, w=2, h=1, cx=12,cy=16},
+  sun    =     {n= 14, w=2, h=2, cx=8, cy=8},
+  smoke_l=     {n= 50, w=1, h=1, cx=4, cy=4},
+  smoke_s=     {n= 23, w=1, h=1, cx=4, cy=4},
+  spider =     {n= 22, w=1, h=1, cx=4, cy=4, r=4},
+  wasp   =     {n= 21, w=1, h=1, cx=4, cy=4, r=4},
 
   honeycomb =  {n= 35, w=2, h=2, cx=8, cy=8, r=8},
   -- todo: tree.
@@ -164,7 +170,13 @@ end
 -- entity reaction: drop
 function er_drop(entity, entities)
   if p.carry_sprite == nil then return end
-  add(entities, {type=p.carry_sprite,x=p.x,y=p.y})
+  add(
+    entities,
+    {
+      type=p.carry_sprite,
+      x=p.x,
+      y=p.y + p.r + _s[p.carry_sprite].r + 2,
+      updates={eu_fall},reactions={er_carry}})
   p.carry_sprite = nil
 end
 
@@ -235,6 +247,7 @@ function update_bee()
 end
 
 function apply_floors(entities)
+  if p.y < p.r then p.y = p.r end
   if p.y > floor_y then p.y = floor_y end
 end
 
@@ -269,6 +282,7 @@ function check_overlap(entities)
     local e = entities[i]
     e.is_touched = false
     local sprite = _s[e.type]
+    -- log("checking", e.type,e.x, )
     local e_r = sprite.r
     if e_r ~= nil then
       local dx = e.x - p.x
@@ -301,6 +315,19 @@ function apply_overlap(entities)
         for reaction in all(reactions) do
           reaction(e, entities)
         end
+      end
+    end
+  end
+end
+
+function apply_entity_updates(entities)
+  for i=#entities,1,-1 do
+    local e = entities[i]
+    local updates = e.updates
+    if updates ~= nil then
+      log("#updates", #updates)
+      for update in all(updates) do
+        update(e, entities)
       end
     end
   end
@@ -420,18 +447,26 @@ function _update_overworld()
   update_bee()
   control()
   apply_floors(overworld_entities)
+  apply_entity_updates(overworld_entities)
   check_overlap(overworld_entities)
 
   apply_overlap(overworld_entities)
+  apply_map_updates(overworld_updates)
 
   update_camera()
 
   log("stats","mem",stat(0),"cpu",stat(1))
 end
 
+function apply_map_updates(updates)
+  for u in all(updates) do
+    u()
+  end
+end
+
 function _draw_overworld()
   cls"12"
-  rectfill(cam_x,floor_y, 128+cam_x,128, 3)
+  rectfill(cam_x-64,floor_y, cam_x+128+64,128, 3)
   camera(cam_x,0)
   local screen = get_screen(cam_x)
 
@@ -466,6 +501,7 @@ end
 function go_to_overworld()
   _update = _update_overworld
   _draw = _draw_overworld
+  cam_x = 0
 end
 
 -- returns the map_id of an available map, probabilistically
@@ -480,6 +516,7 @@ function init_overworld()
   map_list_left = {2,3,4,5}
   map_list_right = {2,3,4,5}
   overworld_entities = {}
+  overworld_updates = {}
   init_map_data_all({home_map}, 0)
   init_map_data_all(map_list_left, -1)
   init_map_data_all(map_list_right, 1)
@@ -496,11 +533,20 @@ end
 
 function init_map_data_one(map_data, map_id, distance_from_home)
   local screen_offset_x, _ = get_screen_offset(distance_from_home)
+  if map_data.update ~= nil then
+    local closure_object = {}
+    add(overworld_updates, function()
+      map_data.update(
+        closure_object,
+        map_data,
+        distance_from_home,
+        screen_offset_x)
+    end)
+  end
+
   log("init_map_data_one", map_id, distance_from_home, screen_offset_x, _)
   for entity in all(map_data.default_entities) do
-    local new_entity = clone(entity)
-    new_entity.x = new_entity.x + screen_offset_x
-    add(overworld_entities, new_entity)
+    inject_entity(entity, screen_offset_x)
   end
 end
 
@@ -514,6 +560,7 @@ function _update_hive()
   control()
 
   apply_hive_walls(hive_entities)
+  apply_entity_updates(overworld_entities)
   check_overlap(hive_entities)
   apply_overlap(hive_entities)
 
@@ -524,7 +571,7 @@ end
 
 function _draw_hive()
   cls"15"
-  camera(cam_x,0)
+  camera(0,0)
   -- map(0,64-16, 0,0, 16,16)
 
   -- entities
@@ -542,16 +589,25 @@ end
 function go_to_hive()
   _update = _update_hive
   _draw = _draw_hive
-  cam_x = 0
 end
 
 -- go_to_overworld()
 go_to_hive()
 
+function eu_fall(entity, entities)
+  entity.y = entity.y + normal_gravity
+  if entity.y > floor_y then entity.y = floor_y end
+end
+
+function eu_fall_off(entity, entities)
+  entity.y = entity.y + normal_gravity
+  if entity.y < -16 then er_delete(entity, entities) end
+end
+
 -- prep entities
 function _init()
-		music(0)
-
+  music(0)
+  overworld_updates = {}
   overworld_entities = {
     {type="food", x=136,y=floor_y,reactions={er_carry}}
   }
@@ -566,7 +622,9 @@ function _init()
       default_entities = {
         {type="hive", x=64, y=52,reactions={go_to_hive}},
       },
-      update = function(offset_x) log"2222 update 2222" end
+      update = function(o, map_data, distance_from_home, screen_offset_x)
+        log("update 1", distance_from_home, screen_offset_x)
+      end
     },
     [2] = {
       default_entities = {
@@ -574,16 +632,34 @@ function _init()
         {type="food", x=54,y=86,reactions={er_carry}},
         {type="food", x=94,y=86,reactions={er_carry}},
       },
-      update = function() log"2222 update 2222" end
+      update = function(o, map_data, distance_from_home, screen_offset_x)
+        log("update 2", distance_from_home, screen_offset_x)
+      end
     },
     [3] = {
-
-    },
-    [4] = {},
-    [5] = {}
+      default_entities = {
+        {type="food", x=64,y=12,reactions={}},
+      },
+      extra_entities = {
+        {type="spider", x=64,y=12,updates={eu_fall_off},reactions={er_drop}},
+      },
+      update = function(o, map_data, distance_from_home, screen_offset_x)
+        local local_px = p.x - screen_offset_x
+        if local_px > 64 and not o.has_attacked then
+          o.has_attacked = true
+          inject_entity(map_data.extra_entities[1], screen_offset_x)
+        end
+      end
+    }
   }
 
   init_overworld()
+end
+
+function inject_entity(entity, screen_offset_x)
+  local new_entity = clone(entity)
+  new_entity.x = new_entity.x + screen_offset_x
+  add(overworld_entities, new_entity)
 end
 
 
