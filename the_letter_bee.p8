@@ -1146,6 +1146,14 @@ function er_spawn_on_hit(entity, entities)
   end
 end
 
+function epd_exit(entity, entities)
+  print(
+    "exit",
+    entity.x-_s[entity.type].cx+1,
+    entity.y-_s[entity.type].cy-6,
+    8)
+end
+
 -- prep entities
 function _init()
   -- music(0)
@@ -1168,7 +1176,8 @@ function _init()
   }
 
   hive_entities = {
-    {type="exit",      x=64,   y=128,   reactions={go_to_overworld}},
+    {type="exit",      x=64,   y=128,   post_draws={epd_exit},
+      reactions={go_to_overworld}},
 
     {type="honeycomb", x=96,   y=96,    reactions={erf_consume_carry_only("food_blue")}},
     {type="bee_blue",  x=96,   y=96-20,
