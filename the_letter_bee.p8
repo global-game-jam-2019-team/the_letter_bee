@@ -1013,7 +1013,7 @@ function go_to_title()
   _draw = _draw_title
 end
 
-cardioid_loop = euf_rose_xy{n=1,d=3,r=46,r_x=46,f_cycle=-30*3,rotate=-0.25}
+cardioid_loop = euf_rose_xy{n=1,d=3,r=38,r_x=38,f_cycle=-30*3,rotate=-0.25}
 
 function _update_title()
   t = (t + 1) % 32767
