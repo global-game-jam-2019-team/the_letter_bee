@@ -1134,6 +1134,7 @@ function game_start(entity, entities)
   reset_goals()
   update_weather()
   go_to_hive()
+  has_been_night = false
   p.x = 64
   p.y = 80
 end
@@ -1230,14 +1231,11 @@ function _init()
     [map_screens.hive] = { -- 1
       default_entities = {
         {type="hive", x=64, y=52,reactions={go_to_hive}},
-        {type="exit", x=32, y=112,post_draws={epdf_lake(64,16,12)}},
-        {type="exit", x=32+16, y=112+12,post_draws={epdf_lake(64,16,12)}},
-        {type="reed", x=32+8, y=106+2},
-        {type="lilipad", x=40+8, y=106+8},
-        {type="reed", x=48+8, y=106+2},
-        {type="reed", x=32+48, y=106+12},
-        {type="lilipad", x=40+49, y=106+16},
-        {type="reed", x=48+48, y=106+12},
+        {type="exit", x=24, y=112,post_draws={epdf_lake(64,16,12)}},
+        {type="reed", x=24+8, y=106+2},
+        {type="reed", x=24+32+8, y=106+2},
+        {type="reed", x=24+32+8+8, y=106+6},
+        {type="lilipad", x=24+8+8, y=106+8},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
         -- log("update 1", distance_from_home, screen_offset_x)
@@ -1284,6 +1282,14 @@ function _init()
     },
     [map_screens.houses_and_lake] = { -- 4
       default_entities = {
+        {type="exit", x=32, y=112,post_draws={epdf_lake(64,16,12)}},
+        {type="exit", x=32+16, y=112+12,post_draws={epdf_lake(64,16,12)}},
+        {type="reed", x=32+8, y=106+2},
+        {type="lilipad", x=40+8, y=106+8},
+        {type="reed", x=48+8, y=106+2},
+        {type="reed", x=32+48, y=106+12},
+        {type="lilipad", x=40+49, y=106+16},
+        {type="reed", x=48+48, y=106+12},
       },
       extra_entities = {
       },
