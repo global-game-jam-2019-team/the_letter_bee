@@ -1,10 +1,8 @@
 pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
---------------------------------
------- the letter b-------------
--- global game jam 2019 --------
---------------------------------
+-- bee budz
+-- global game jam 2019
 
 local cam_x = 0
 local cam_x_screen_limit = 48
@@ -302,10 +300,13 @@ function update_weather()
   end
 
   local completed_goals = 0
-  for v in all(goals) do
-    completed_goals = completed_goals + 1
+  for k,v in pairs(goals) do
+    if v then
+      completed_goals = completed_goals + 1
+    end
   end
   is_rainy = completed_goals == 2
+  all_goals = completed_goals >= 3
 end
 
 -- entity reaction factory: consume carry only one type
@@ -369,6 +370,8 @@ goals = {
   food_green = false,
   food_pink  = false,
 }
+
+all_goals = false
 
 -- entity post draw factory: goal
 function epdf_speech_goal_indicator(goal)
@@ -687,7 +690,7 @@ function parallax_hills(seed, count, speed, scale, y_spread)
   for i=1,count do
     local sx = rnd(right_limit + left_limit) - left_limit
     -- local sy = y + rnd(y_spread)
-    sx = sx + speed * -cam_x
+    sx = sx + (speed * -cam_x) - 1
 
     local hill_count = flr(rnd(3)) + 1
     local hill_y_pos = 92
@@ -804,6 +807,7 @@ function _draw_overworld()
 end
 
 function go_to_overworld()
+  if all_goals then return end
   music(0)
   _update = _update_overworld
   _draw = _draw_overworld
@@ -833,13 +837,13 @@ function init_overworld()
   map_list_left = {
     map_screens.spiders_and_trees,
     map_screens.open_space_variant_2,
-    map_screens.blue_flowers_and_wasps,
+    map_screens.green_flowers,
     map_screens.end_of_world,
   }
 
   map_list_right = {
+    map_screens.blue_flowers_and_wasps,
     map_screens.houses_and_lake,
-    map_screens.green_flowers,
     map_screens.houses_and_wasps,
     map_screens.pink_flowers_and_spiders,
     map_screens.end_of_world,
@@ -899,6 +903,39 @@ function _update_hive()
   log("stats","mem",stat(0),"cpu",stat(1))
 end
 
+function go_to_end()
+  music(0)
+  _update = _update_end
+  _draw = _draw_end
+end
+
+function _draw_end()
+  if #hearts < 1000 then
+    cls"14"
+  end
+  camera(0,0)
+  sspr(0, 48, 32, 16, 10, 10, 108, 32)
+
+  too_many_hearts(-1, 1, 10)
+
+  draw_entities(end_entities)
+
+  -- -- bee
+  -- spr(s(p.sprite, p.x, p.y, not p.point_right))
+end
+
+function _update_end()
+  t = (t + 1) % 32767
+  update_buttons()
+  update_bee()
+  control(hive_entities)
+  -- for i=#hearts,1,-1 do
+  --   if i % 10 > 5 then
+  --     del(hearts, hearts[i])
+  --   end
+  -- end
+end
+
 function draw_busy_bees(sprite, count, seed, tx, ty)
   local reseed = rnd(1000)
   srand(seed)
@@ -911,8 +948,8 @@ function draw_busy_bees(sprite, count, seed, tx, ty)
 end
 
 function _draw_hive()
-  cls"15"
   camera(0,0)
+  cls"15"
   draw_busy_bees(_s.bee_busy,   50, 100,  5, 1)
   draw_busy_bees(_s.bee_busier, 50, 101, -5, 1)
   draw_busy_bees(_s.bee_busy,   50, 102, -3, 2)
@@ -931,6 +968,34 @@ function _draw_hive()
   end
   -- bee
   spr(s(p.sprite, p.x, p.y, not p.point_right))
+
+  if all_goals then
+    too_many_hearts(0.5, 0, 10)
+  end
+end
+
+hearts = {}
+heart_rate = 1
+function too_many_hearts(rate, h_min, h_max)
+  heart_rate = max(h_min, min(heart_rate + rate, h_max))
+  if #hearts < 2000 then
+    for i=1,heart_rate do
+      add(hearts, {x=rnd(128+64)-32, y=rnd(32)+128})
+    end
+  end
+
+  if #hearts > 1500 then
+    go_to_end()
+  end
+
+  for i=#hearts,1,-1 do
+    h = hearts[i]
+    if h.y < -16 then del(hearts, h) end
+    h.y = h.y - 1
+    local theta = (t + i) / 300
+    h.x = h.x + cos(theta)
+    spr(s("heart", h.x, h.y))
+  end
 end
 
 function go_to_hive()
@@ -946,7 +1011,7 @@ function go_to_title()
   _draw = _draw_title
 end
 
-cardioid_loop = euf_rose_xy{n=1,d=3,r=46,r_x=46,f_cycle=-30*3,rotate=-0.25}
+cardioid_loop = euf_rose_xy{n=1,d=3,r=38,r_x=38,f_cycle=-30*3,rotate=-0.25}
 
 function _update_title()
   t = (t + 1) % 32767
@@ -1067,6 +1132,7 @@ function game_start(entity, entities)
   reset_goals()
   update_weather()
   go_to_hive()
+  has_been_night = false
   p.x = 64
   p.y = 80
 end
@@ -1076,6 +1142,14 @@ function er_spawn_on_hit(entity, entities)
   for v in all(entity.spawn_on_hit) do
     add(entities, v)
   end
+end
+
+function epd_exit(entity, entities)
+  print(
+    "exit",
+    entity.x-_s[entity.type].cx+1,
+    entity.y-_s[entity.type].cy-6,
+    8)
 end
 
 -- prep entities
@@ -1092,16 +1166,16 @@ function _init()
         {type="food_blue", x=32,y=64,reactions={er_carry}},
       },
       reactions={er_spawn_on_hit, reset_goals}},
-    {type="honeycomb", x=96,   y=64,    reactions={erf_consume_carry_only("food_blue")}},
-    {type="bee_blue",  x=96,   y=64-20,
+    {type="honeycomb", x=96,   y=70,    reactions={erf_consume_carry_only("food_blue")}},
+    {type="bee_blue",  x=96,   y=70-20,
       updates={eu_bee_jank}},
-    {type="speech",    x=96-4, y=64-20-12,
+    {type="speech",    x=96-4, y=70-20-12,
       post_draws={epdf_speech_goal_indicator("food_blue")}},
-    -- {type="food_blue", x=96-4, y=96-20-12,},
   }
 
   hive_entities = {
-    {type="exit",      x=64,   y=128,   reactions={go_to_overworld}},
+    {type="exit",      x=64,   y=128,   post_draws={epd_exit},
+      reactions={go_to_overworld}},
 
     {type="honeycomb", x=96,   y=96,    reactions={erf_consume_carry_only("food_blue")}},
     {type="bee_blue",  x=96,   y=96-20,
@@ -1124,6 +1198,29 @@ function _init()
       post_draws={epdf_speech_goal_indicator("food_pink")}},
     -- {type="food_pink", x=32-4, y=96-20-12,},
   }
+
+  end_entities = {
+    {type="bee_blue",  x=96,   y=96-20,
+      updates={eu_bee_jank}},
+    {type="speech",    x=96-4, y=96-20-12,
+      post_draws={epdf_speech_goal_indicator("food_blue")}},
+
+    {type="bee_green", x=64,   y=96-20,
+      updates={eu_bee_jank}},
+    {type="speech",    x=64-4, y=96-20-12,
+      post_draws={epdf_speech_goal_indicator("food_green")}},
+
+    {type="bee_pink",  x=32,   y=96-20,
+      updates={eu_bee_jank}},
+    {type="speech",    x=32-4, y=96-20-12,
+      post_draws={epdf_speech_goal_indicator("food_pink")}},
+
+    {type="bee", x=64,   y=128-20,
+      updates={eu_bee_jank}},
+    {type="speech",    x=64-4, y=128-20-12,
+      post_draws={epdf_speech_goal_indicator("heart")}},
+  }
+
   for entity in all(hive_entities) do
     entity.ox = entity.x
     entity.oy = entity.y
@@ -1132,19 +1229,20 @@ function _init()
     entity.ox = entity.x
     entity.oy = entity.y
   end
+  for entity in all(end_entities) do
+    entity.ox = entity.x
+    entity.oy = entity.y
+  end
 
   map_setup = {
     [map_screens.hive] = { -- 1
       default_entities = {
         {type="hive", x=64, y=52,reactions={go_to_hive}},
-        {type="exit", x=32, y=112,post_draws={epdf_lake(64,16,12)}},
-        {type="exit", x=32+16, y=112+12,post_draws={epdf_lake(64,16,12)}},
-        {type="reed", x=32+8, y=106+2},
-        {type="lilipad", x=40+8, y=106+8},
-        {type="reed", x=48+8, y=106+2},
-        {type="reed", x=32+48, y=106+12},
-        {type="lilipad", x=40+49, y=106+16},
-        {type="reed", x=48+48, y=106+12},
+        {type="exit", x=24, y=112,post_draws={epdf_lake(64,16,12)}},
+        {type="reed", x=24+8, y=106+2},
+        {type="reed", x=24+32+8, y=106+2},
+        {type="reed", x=24+32+8+8, y=106+6},
+        {type="lilipad", x=24+8+8, y=106+8},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
         -- log("update 1", distance_from_home, screen_offset_x)
@@ -1191,6 +1289,14 @@ function _init()
     },
     [map_screens.houses_and_lake] = { -- 4
       default_entities = {
+        {type="exit", x=32, y=112,post_draws={epdf_lake(64,16,12)}},
+        {type="exit", x=32+16, y=112+12,post_draws={epdf_lake(64,16,12)}},
+        {type="reed", x=32+8, y=106+2},
+        {type="lilipad", x=40+8, y=106+8},
+        {type="reed", x=48+8, y=106+2},
+        {type="reed", x=32+48, y=106+12},
+        {type="lilipad", x=40+49, y=106+16},
+        {type="reed", x=48+48, y=106+12},
       },
       extra_entities = {
       },
@@ -1406,6 +1512,136 @@ __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000032
 42000000000000000000000000000032423242324232430000334232423242324232423242324232423242324232423200000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000033
+__label__
+44442992299244444444299229924444444429922992444444442992299244444444299229924444444429922992444444442992299244444444299229924444
+44422992299224444442299229922444444229922992244444422992299224444442299229922444444229922992244444422992299224444442299229922444
+42299992299992244229999229999224422999922999922442299992299992244229999229999224422999922999922442299992299992244229999229999224
+29999225522999922999922552299992299992255229999229999225522999922999922552299992299992255229999229999225522999922999922552299992
+9992255ff55229999992255ff55229999992255ff55229999992255ff55229999992255ff55229999992255ff55229999992255ff55229999992255ff5522999
+922554fffff5522992255ffffff5522992255ffffff5522992255ffffff5522992255ffffff5522992255ffffff5522992255ffffff5522992255ffffff55229
+255ffffffffff552255ffffffffff552255ffffffffff552255ffffffffff552255ffffffffff552255ffffffffff552255ffffffffff552255ffffffffff552
+5ffffffffffffff55ffffffffffffff55ffffffffffffff55ffffffffffffff55ffffffffffffff55ffffffffffffff55ffffffffffffff55ffffffffffffff5
+2fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff44fffffffffffffffffffffffffffffffffffffffffffffffffff2
+922ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff229
+99922fffff11111111111111fff1111111111fff1111111111144ffffffff1111111111111ffff111fff1111fff1111111fffffff1111111111111fffff22999
+2999922fff11111111111111fff1111111111fff11111111111ffffffffff1111111111111ffff111fff1111fff1111111fffffff1111111111111fff2299992
+42299992ff22211112221111fff1112222222fff11112222222ffffffffff2221112222111ffff111fff1111fff1112222111ffff2222222222111ff29999224
+44422992ff22211112221111f441112222222fff11112222222ffffffffff2221112222111fff4111fff1111fff1112222111ffff2222222222111ff29922444
+44442992fffff1111fff1111fff111ffffffffff1111ffffffffffffffffffff111ffff111ffff111fff1111fff111ffff1115fffffffff1111222ff29924444
+44442992fffff1111fff1111fff111ffffffffff1111ffffffffffffffffffff111ffff111ffff111fff1111fff111ffff111ffffffffff1111222ff29924444
+44442992fffff1111fff1111fff111ffffffffff1111ffffffffffffffffffff111ffff111ffff111ff41111fff111ffff111ffffff44ff1111fffff29924444
+44422992fffff1111fff1111fff111ffffffffff1111ffffffffffffffffffff111ffff111ffff111fff1111fff111ffff111ffffffffff1111fffff29922444
+42299992fffff1111fff1111fff111ffffffffff1111ffffffffffffffffffff111ffff111ffff111fff1111fff111ffff111ffffffffff1111fffff29999224
+29999225fffff1111fff1111fff111ffffffffff1111ffffffffffffffffffff111ffff111ffff111fff1111fff111ffff111ffffffffff1111fffff52299992
+9992255ffffff11111111111fff1111111111fff11111111111fff1111111fff1111111111ffff111fff1111fff111ffff111ffff1111111111111fff5522999
+92255ffff44ff11111111111fff1111111111fff11111111111fff1111111fff1111111111ffff111fff1111f55111ffff111ffff1111111111111fffff55229
+255ffffffffff11112221111fff1112222222fff11112222222fff2222222fff1112222111ffff111fff1111fff111ffff111ffff2221112222222fffffff552
+5ffffffffffff11112221111fff1112222222fff11112222222fff2222222fff1112222111ffff111fff1111fff111ffff111ffff2221112222222fffffffff5
+2ffffffffffff1111fff1111fff111ffffffffff1111ffffffffffffffffffff111ffff111ffff111fff1111fff111ffff111ff44fff111ffffffffffffffff2
+922ffffffffff1111fff1111fff111ffff55ffff1111ffffffffffffffffffff111ffff111ffff111fff1111fff111ffff111fffffff111ffffffffffffff229
+99922ffffffff1111fff1111fff111ffffffffff1111ffffffffffffffffffff111ffff111ffff111fff1111fff111ffff111fffffff111ffffffffffff22999
+2999922ffffff1111fff1111fff111ffffffffff1111ffffffffffffffffffff111ffff111ffff111fff1111fff111ffff111fffffff111ffffffffff2299992
+42299992fffff1111fff1111fff111ffffffffff1111ffffffffffffffffffff111ffff111ffff111fff1111ff4111ffff111ffff111222fffffffff29999224
+44422992fffff1111fff1111fff111ffffffffff1111ffffffffffffffffffff111ffff111ffff111fff1111fff111ffff111ffff111222fffffffff29922444
+44442992ff11111111111111fff1111111111fff11111111111ffffffffff1111111111111ffff1111111111fff1111111222ffff1111111111111ff29924444
+44442992ff11111111111111fff1111111111fff11111111111ffffffffff1111111111111ffff1111111111fff1111111222ffff1111111111111ff29924444
+44442992ff22222222222222fff2222222222fff22222222222ffffffffff2222222222222ffff2222222222f777777222fffffff2222222222222ff29924444
+44422992ff22222222222222fff2222222222fff22222222222ffffffffff2222222222222ffff22222222277777777772fffffff2222222222222ff29922444
+42299992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff777777777777ffffffffffffffffffffff29999224
+29999225fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77777711777777fffffffffffffffffffff52299992
+9992255fff1111111111111111111111111111111111111111111111111111111111111111111111111177777711d1777777111111111111111111fff5522999
+92255fffff111111111111111111111111111111111111111111111111111111111111111111111111117777711dfd177777111111111111111111fffff55229
+255fffffff2222222222222222222222222222222222222222222222222222222222222222222222222277777111d1177777222222222222222222fffffff552
+5fffffffff222222222222222222222222222222222222222222222222222222222222222222222222227777771111777776222222222222222222fffffffff5
+2fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff55fffffffffffffffff77777711777776ffffffffffffffffffffff44ffff2
+922ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff44ffffff6777777777776fffffffffffffffffffffffffff229
+99922ffffffffffffffffffffffffffffffff44fffffffffffffffffffffffffffffffffffffffffffffff66777777766ffffffffffffffffffffffffff22999
+2999922fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6667776ffffffffffffffffffffffffff2299992
+42299992fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff677ffffffffffffffffffffffffff29999224
+44422992fffffffffffffffffffffffffffffffffffffffffff44ff55fffffffffffffffffffffffffffffffffff67ffffffffffffffffffffffffff29922444
+44442992fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6ffffffffffffffffffffffffff29924444
+44442992ffffffffffff55ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29924444
+44442992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29924444
+44422992ffffffffffffffffffffffffffffffffffffffffffffffff44ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29922444
+42299992fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77fff5fffffffffffffffffffff29999224
+29999225ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7667f5ffffffffffffffffffffff52299992
+9992255ffffffffffffffffffffffffffffffff55ffffffffffffffffffffffffffffffffffffffffffffffffffff766ccfffffffffffffffffffffff5522999
+92255fffffffff55ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc171c1cffffffffffffffffffffffff55229
+255ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1c1c1cccffffffffffffffffffffffffff552
+5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff12121ffffffffffffffffffffffffffffff5
+2ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5f5fffffffffffffffffffffffffffffff2
+922ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff229
+99922fffffffffffffffffffffffffffff8ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff22999
+2999922fffffffffffffffffffffffff888ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff44ffffffffffffffffffffffffff2299992
+42299992fffffffffffffffffffdddf8888fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29999224
+44422992ffffffffffffffffffffddd118dddfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29922444
+44442992fffffffffffffffffffffd11d1dddddfffffffffffffffffffffffff55ffffffffffffffffffff44fffffff22fffffffffffffffffffffff29924444
+44442992fffffffffffffffffffff11dfd1dddfffffffffffffffffffffffffffffffffffffffffffffffffffffff229922fffffffffffffffffffff29924444
+44442992ffffffffffffffffffff8111d11ddffffffffffffffffffffffffffffffffffffffffffffffffffffff2299999922ffffffffffff55fffff29924444
+44422992fffffffffffffffffff888111188dffffffffffffffffffffffffffffffffffffffffffffffffffff22999922999922fffffffffffffffff29922444
+42299992fff55ffffffffffffffff8811d8888ffffffffffffffffffffffffffffffffffffffffffffffffff2999922442299992ffffffffffffffff29999224
+29999225fffffffffffffffffffffffddd88883fffffffffffffffffffffffffffffffffffffffffffffffff2992244444422992ffffffffff44ffff52299992
+9992255ffffffffffffffffffffffffddd3383bffffffffffffffffffffffffffffffffffffff55fffffffff2992444444442992fff55ffffffffffff5522999
+92255fffffffffffffffffffffffffffdff333fffffff55ffffffffffffffff44fffffffffffffffffff44ff2992444444442992fffffffffffffffffff55229
+255fffffffffffffffffffffffffffffffff3bffffffffffffffffffffffffffffffffffffffffffffffffff2992444444442992fffffffffffffffffffff552
+5fffffffffffffffffffffffffffffffffbf3fffffffffffffffffffffffffffffffffffffffffffffffffff2992244444422992fffffffffffffffffffffff5
+2ffffffffffffff44ffffffffffffffffff33fffffffffffffffffffffffffffffffffffffffffffffffffff2999922442299992fffffffffffffffffffffff2
+922ffffffffffffffffffffffffffffffff3bfffffffffffffffffffffffffffffffffffffffffffffffffff5229999229999225fffffffffffffffffffff229
+99922ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff55229999992255ffffffffffffffffffff22999
+2999922fffffffffffff55fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5522992255ffffffffffffffffffff2299992
+42299992ffffffff44fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff552255fffffffffffffffffffff29999224
+44422992fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff55fffffffffffffffffffffff29922444
+44442992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff44ffffffffffffff29924444
+44442992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff55ffffffffffffffffffffffffff29924444
+44442992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29924444
+44422992ffffffffffffffffffffffff55ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29922444
+42299992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29999224
+29999225ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff52299992
+9992255fffffffffff44fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5522999
+92255ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff55229
+255ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff552
+5fffffffffffffffffffffffffffffffffff77fff5ffffffffffffffffffffffffffffffffffffffffffffffffffffffff44fffffffffffffffffffffffffff5
+2ffffffffffffffffffffffffffffffffff7667f5ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff2
+922fffffffffffffffffffffffffffffffff766aaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff229
+9992244ffffffffffffffffffffffffffffa474a1affffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff55fffff22999
+2999922fffffffffffffffffffffffffff4a4a4aaafffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff2299992
+42299992fffffffffffffff44ffffffffff49494fffffffffffffffffffffffff44fffffffffffffffffffffffffffffffffffffffffffffffffffff29999224
+44422992ffffffffffffffffffffffffffff5f5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29922444
+44442992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29924444
+44442992fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff44fffffffffffffffffffffff29924444
+44442992ffffffffffffffffffffffffffffffffffffffffffffffffffffff55ffffffffffffffffffffffffffffffffffffffffffffffffffff55ff29924444
+44422992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29922444
+42299992ffffffffffffffffffffffff111f111f111ff11ff11fffff1f1fffff111ff11fffff111f111ff11f111f11ffffffffffffffffffffffffff29999224
+29999225ffffffffffffffffffffffff1f1f1f1f1fff1fff1ffff5551f1ffffff1ff1f1fffff1f1f1fff1ffff1ff1f1fffffffffffffffffffffffff52299992
+9992255fffffffffffffffffffffffff111f11ff11ff111f11144ffff1fffffff1ff1f1fffff11ff11ff1ffff1ff1f1ffffffffffffffffffffffffff5522999
+92255fffffffffffffffffffffffffff1fff1f1f1fffff1fff1fffff1f1ffffff1ff1f1fffff1f1f1fff1f1ff1ff1f1ffffffffffffffffffffffffffff55229
+255fffffffffffffffffffffffffffff1fff1f1f111f11ff11ffffff1f1ffffff1ff115fffff111f111f111f111f1f1ffffffffffffffffffffffffffffff552
+5ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5
+2ffffffffffffffffffffffffffffff55ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff2
+922ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff229
+99922ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff22999
+2999922fffffffffffffffffffffffffffffffffffffffffffffffffff55fffffffffffffffffffffffffffff44ffffffffffffffffffffffffffffff2299992
+42299992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29999224
+44422992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29922444
+44442992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29924444
+4444299244ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff44ffffffffffffffffff29924444
+44442992fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff44fffffffffffffffffffffffff29924444
+44422992ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff555fffffffffffffffffff44ffffffffffffffffffffffffffffff29922444
+42299992ffffff55ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff29999224
+29999225ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5552299992
+9992255ffffffffffff55ffffffffffffffff55ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5522999
+92255ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff55229
+255ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff552
+5ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5
+2ffffffffffffff22ffffffffffffff22ffffffffffffff22ffffffffffffff22ffffffffffffff22ffffffffffffff22ffffffffffffff22ffffffffffff552
+922ffffffffff229922ffffffffff229922ffffffffff229922ffffffffff229922ffffffffff229922ffffffffff229922ffffffffff229922ffffffffff229
+99922ffffff2299999922ffffff2299999922ffffff2299999922ffffff2299999922ffffff2299999922ffffff2299999922ffffff2299999922ffffff22999
+2999922ff22999922999922ff22999922999922ff22999922999922ff22999922999922ff22999922999922ff22999922999922ff22999922999922ff2299992
+42299992299992244229999229999224422999922999922442299992299992244229999229999224422999922999922442299992299992244229999229999224
+44422992299224444442299229922444444229922992244444422992299224444442299229922444444229922992244444422992299224444442299229922444
+44442992299244444444299229924444444429922992444444442992299244444444299229924444444429922992444444442992299244444444299229924444
+44442992299244444444299229924444444429922992444444442992299244444444299229924444444429922992444444442992299244444444299229924444
+
 __map__
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -1443,19 +1679,49 @@ __sfx__
 0006000006150061500815008150071400614007140091500815007150071500815008140061400614006140061500615007140081400815009140091500a1300915009140081400815008140071500715007150
 010e00000d22019200162001410017220171001610015100162202410024100231000d2001b200171001510023200232002470000000000000000000000222002120023200212001b200192001b2001920000000
 010e00000000000000196230d6000d60000000196240d6000d600000001962300000196000000019623000000d6000000019623000000d6000000019624000000d6000000019623000000d600000001962300000
-000e00000d2100d2000d2100d2000d2100d2000d21001200142100000014210012001421001200142100120012210002001221000200122100020012210002001721003200172100f20017210032001721003200
-010e00003d6000000400000000003d6000000000000000003d6153d6003d600000003d600000003d600000003d6000000400000000003d6000000000000000003d615000043d615000003d6003d6003d60000000
+000e00000d2140d2000d2140d2000d2140d2000d21401200142140000014214012001421401200142140120012214002001221400200122140020012214002001721403200172140f20016214032001621403200
+000e00003d6000000400000000003d6250000000000000003d6003d6003d600000003d625000003d600000003d6000000400000000003d6250000000000000003d625000043d625000003d6003d6003d6003d600
 000e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151001670023200247000000000000000000000000000232002120023210212101b210192101b21019210
-0003000023e2423e2022e201fe2021e2020e201fe201ee201ce201ae2017e2014e2010e2010e10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000400001cf301ff3025f302bf302ef3034f3009100061000710009100071000a100091000810009100091000810008100071000a10008100081000a10008100081000710009100071000a100081000910009100
+0003000023e4423e4022e401fe4021e3020e301fe301ee301ce301ae3017e4014e4010e3010e30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00040000161301b1301e1302bf302ef3034f3009100061000710009100071000a100091000810009100091000810008100071000a10008100081000a10008100081000710009100071000a100081000910009100
 0002000031120291201e12017120141200e12009120041202bb0022b001bb0011b000ab0004b0001b002a300263001c3000f3000830002b000bd0005d0001d0001d0001d0001d000000000000000000000000000
-010e00003d6000000400000000003d6000000000000000003d6150000400000000003d600000003d600000003d6000000400000000003d6000000000000000003d615000043d615000003d615000003d60000000
+000e000000000000002350000000235522355223552235522255222552225522255223552235521b5521b5521b5521b5521955219552195521955219552195520000000000000000000000000000000000000000
 010e00000d2201920016200141001722017100161001510016220241002410023100172001b22017100151002321023200232100000000000000000000000000222102120022210212001b200192002021019200
 010e00000d2100d2000d2100d2000d2100d2000d21001200142100000014210012001421001200142100120017210032001721000200172100320017210002001221000200122100f20012210002001221003200
+001800200615006150081500815006140061400a1400a1500815006150061500615006140061000614006100061500615008140091400915009140091500b1300b1500b1400b1401015010140101500b1500b150
+010e0020061500610006150081000610006100061500a1000d150061000d1500610006100061000d15006100041500610004150091000910009100041500b1000b150061000b1501010010100101000315002100
+000e00003d6000000400000000003d6150000000000000003d6003d6003d600000003d615000003d600000003d6000000400000000003d6003d60000000000003d615000043d615000003d6003d6003d60000000
+000e000000000000002f5242e5222c5222a5222c5222c5222f5222e5222c5222a5222c5222c522205002c52400000000002f5242e5222c5222a5222c5222c5222f5222e5222c5222a5220d5220d522205000d524
+000e000000000000002354222542205421e54220542205422354222542205421e5422054220542205002054200000000002354222542205421e54220542205422354222542205421e54225542255422050025542
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000e00000000000000235000000023532235322353223532225322253222532225322353223532205322053220532205321e5321e5321e5321e5321e5321e5320000000000000000000000000000000000000000
+000e00000000000000000000000027532275322753227532255322553225532255322753227532235322353223532235322253222532225322253222532225322250022500000000000000000000000000000000
+000e000000000000002354222542205421e54220542205422354222542205421e5422054220542205002054200000000002354222542205421e54220542205422354222542205421e54225542255422050025542
+000e000000000000000000000000275322753227532275322553225532255322553227532275322c5322c5322c5322c5322a5322a5322a5322a5322a5322a5322250022500000000000000000000000000000000
+000e000000000000002350000000235322353223532235322253222532225322253223532235321b5321b5321b5321b5321953219532195321953219532195320000000000000000000000000000000000000000
+010e00003d6000000400000000003d6150000000000000003d6003d6003d600000003d615000003d600000003d6000000400000000003d6153d60000000000003d600105003d600000003d6153d6003d61500000
+000e00000d2140d2000d2140d2000d2140d2000d21401200142140000014214012001421401200142140120012214002001221400200122140020012214002001b225272251b2252722519225252251922525225
+010e0020061500610006150081000610006100061500a1000d150061000d1500610006100061000d15006100041500610004150091000910009100041500b1000b1500b100101001010010100031000210000000
+010e00003d6000000400000000003d6150000000000000003d6003d6003d600000003d615000003d600000003d6000000400000000003d6153d60000000000003d600105003d600000003d6153d6003d60000000
 __music__
 01 01020b04
 00 0a020309
 00 01020b04
 02 05020309
 03 00424344
+03 0d0e100f
+01 0d175255
+00 0d0e5254
+01 0d171253
+00 0d171653
+00 0d171213
+00 0d0e1615
+00 0d171055
+00 0d171055
+00 0d17100f
+00 191a100f
+00 0d170355
+00 0d171855
+00 0d170355
+02 0d171855
 
