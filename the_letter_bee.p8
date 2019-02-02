@@ -251,6 +251,7 @@ end
 -- entity reaction: carry
 function er_carry(entity, entities)
   if p.carry_sprite ~= nil then return end
+  if goals[entity.type] then return end
   p.carry_sprite = entity.type
   sfx(_sfx.pickup)
   del(entities, entity)
