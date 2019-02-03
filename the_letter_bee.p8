@@ -1103,7 +1103,7 @@ function eu_hornet_cycle(entity, entities)
   local n = 4;
   local d = 6;
   local k = n / d -- petal count; doubled if even? see article
-  local cycle_over_frames = 100 -- 20 -- flr(rnd(45) + 45)
+  local cycle_over_frames = 60 -- 20 -- flr(rnd(45) + 45)
   local theta = ((t + entity.petal_r_offset) % (cycle_over_frames * d)) / cycle_over_frames
   local offset_x = entity.petal_r * cos(k * theta) * cos(theta)
   local offset_y = entity.petal_r * cos(k * theta) * sin(theta)
