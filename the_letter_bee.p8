@@ -967,7 +967,7 @@ function _draw_hive()
   -- bee
   spr(s(p.sprite, p.x, p.y, not p.point_right))
 
-  all_goals = true
+  -- all_goals = true
   if all_goals then
     too_many_hearts(hive_hearts, 0.5, 0, 6, 1000, true)
 
@@ -1096,7 +1096,7 @@ function eu_hornet_cycle(entity, entities)
   local n = 4;
   local d = 6;
   local k = n / d -- petal count; doubled if even? see article
-  local cycle_over_frames = 20 -- flr(rnd(45) + 45)
+  local cycle_over_frames = 100 -- 20 -- flr(rnd(45) + 45)
   local theta = ((t + entity.petal_r_offset) % (cycle_over_frames * d)) / cycle_over_frames
   local offset_x = entity.petal_r * cos(k * theta) * cos(theta)
   local offset_y = entity.petal_r * cos(k * theta) * sin(theta)
@@ -1269,11 +1269,17 @@ function _init()
         {type="food_blue", x=79,y=86,reactions={er_carry}},
         {type="food_blue", x=55,y=86,reactions={er_carry}},
         {type="food_blue", x=95,y=86,reactions={er_carry}},
-        {type="hornet",x=64,y=16,petal_r=12,petal_r_offset=flr(rnd(3000)),
+        {type="hornet",x=32,y=52,petal_r=32,petal_r_offset=500,
           updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
-        {type="hornet",x=48,y=48,petal_r=32,petal_r_offset=flr(rnd(3000)),
+        {type="hornet",x=74,y=42,petal_r=32,petal_r_offset=1000,
           updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
-        {type="hornet",x=96,y=30,petal_r=8,petal_r_offset=flr(rnd(3000)),
+        {type="hornet",x=118,y=42,petal_r=32,petal_r_offset=1500,
+          updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
+        {type="hornet",x=52,y=32,petal_r=32,petal_r_offset=2000,
+          updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
+        {type="hornet",x=42,y=74,petal_r=32,petal_r_offset=2500,
+          updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
+        {type="hornet",x=96,y=32,petal_r=32,petal_r_offset=3000,
           updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
       },
       update = function(o, map_data, distance_from_home, screen_offset_x)
@@ -1358,11 +1364,17 @@ function _init()
     },
     [map_screens.houses_and_wasps] = { -- 7
       default_entities = {
-        {type="hornet",x=96,y=16,petal_r=12,petal_r_offset=flr(rnd(3000)),
+        {type="hornet",x=32,y=52,petal_r=32,petal_r_offset=3000,
           updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
-        {type="hornet",x=16,y=48,petal_r=32,petal_r_offset=flr(rnd(3000)),
+        {type="hornet",x=74,y=42,petal_r=32,petal_r_offset=2500,
           updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
-        {type="hornet",x=48,y=30,petal_r=8,petal_r_offset=flr(rnd(3000)),
+        {type="hornet",x=118,y=42,petal_r=32,petal_r_offset=2000,
+          updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
+        {type="hornet",x=52,y=32,petal_r=32,petal_r_offset=1500,
+          updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
+        {type="hornet",x=42,y=74,petal_r=32,petal_r_offset=1000,
+          updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
+        {type="hornet",x=96,y=32,petal_r=32,petal_r_offset=500,
           updates={eu_hornet_cycle},reactions={er_drop, er_hurt}},
       },
       extra_entities = {
