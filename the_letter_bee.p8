@@ -251,6 +251,7 @@ end
 -- entity reaction: carry
 function er_carry(entity, entities)
   if p.carry_sprite ~= nil then return end
+  if goals[entity.type] then return end
   p.carry_sprite = entity.type
   sfx(_sfx.pickup)
   del(entities, entity)
@@ -910,13 +911,10 @@ function go_to_end()
 end
 
 function _draw_end()
-  if #hearts < 1000 then
-    cls"14"
-  end
   camera(0,0)
+  too_many_hearts(hive_hearts, 0.5, 0, 0, 1000, true)
   sspr(0, 48, 32, 16, 10, 10, 108, 32)
-
-  too_many_hearts(-1, 1, 10)
+  too_many_hearts(end_hearts, 1, 1, 11, 500, false)
 
   draw_entities(end_entities)
 
@@ -969,32 +967,49 @@ function _draw_hive()
   -- bee
   spr(s(p.sprite, p.x, p.y, not p.point_right))
 
+  all_goals = true
   if all_goals then
-    too_many_hearts(0.5, 0, 10)
+    too_many_hearts(hive_hearts, 0.5, 0, 6, 1000, true)
+
+    if #hive_hearts > 750 then
+      transition_counter = transition_counter + 1
+      if transition_counter > 30 * 2 then
+        go_to_end()
+      end
+    end
   end
 end
 
-hearts = {}
+end_hearts = {}
+hive_hearts = {}
 heart_rate = 1
-function too_many_hearts(rate, h_min, h_max)
+transition_counter = 0
+function too_many_hearts(hearts, rate, h_min, h_max, target, wrap)
   heart_rate = max(h_min, min(heart_rate + rate, h_max))
-  if #hearts < 2000 then
+  if #hearts < target then
     for i=1,heart_rate do
       add(hearts, {x=rnd(128+64)-32, y=rnd(32)+128})
     end
   end
 
-  if #hearts > 1500 then
-    go_to_end()
-  end
-
   for i=#hearts,1,-1 do
     h = hearts[i]
-    if h.y < -16 then del(hearts, h) end
+    if h.y < -16 then
+      if wrap then h.y = 128+16 else del(hearts, h) end
+    end
     h.y = h.y - 1
     local theta = (t + i) / 300
     h.x = h.x + cos(theta)
     spr(s("heart", h.x, h.y))
+  end
+end
+
+function thin_hearts(rate, target)
+  for i=1,rate do
+    if #hearts > target then
+      local index = flr(rnd(#hearts-1))+1
+      del(hearts, hearts[i])
+    end
   end
 end
 
