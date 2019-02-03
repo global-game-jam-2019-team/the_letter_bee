@@ -17,7 +17,7 @@ local p =              -- player
    carry_sprite=nil}
 local bee_gravity = 0
 local bee_gravity_carry = 1
-local bee_speed = 2 -- 1.75
+local bee_speed = 1.75 -- 1.75
 local bee_speed_carry = 1.5
 local bee_jank_skip_rate = 3
 local bee_jank_factor_y = 1.25
@@ -832,19 +832,26 @@ function init_overworld()
   -- *** 5 = green flowers
   -- *** 6 = pink flowers + spiders
   -- *** 7 = houses with wasps
-  -- *** 8 = (open space) tall grass?? (variant 2)
+  -- *** 8 = open space three trees bones
   -- 9 = end of world
 
   map_list_left = {
     map_screens.spiders_and_trees,
+    map_screens.open_space_variant_2,
+    map_screens.houses_and_wasps,
+    map_screens.spiders_and_trees,
+    map_screens.houses_and_lake,
     map_screens.open_space_variant_2,
     map_screens.green_flowers,
     map_screens.end_of_world,
   }
 
   map_list_right = {
+    map_screens.open_space_variant_2,
     map_screens.blue_flowers_and_wasps,
+    map_screens.open_space_variant_2,
     map_screens.houses_and_lake,
+    map_screens.spiders_and_trees,
     map_screens.houses_and_wasps,
     map_screens.pink_flowers_and_spiders,
     map_screens.end_of_world,
